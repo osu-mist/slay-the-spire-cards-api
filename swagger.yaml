@@ -114,9 +114,9 @@ paths:
 
       responses:
         200:
-          description: "Card successfully retrieved"
+          description: "Cards successfully retrieved"
           schema:
-            $ref: "#/definitions/Data"
+            $ref: "#/definitions/MultiData"
         400:
           description: "Invalid request"
           schema:
@@ -146,7 +146,7 @@ paths:
           description: "Card object to be added to the database"
           required: true
           schema:
-            $ref: "#/definitions/Data"
+            $ref: "#/definitions/SingleData"
 
       responses:
         201:
@@ -179,6 +179,8 @@ paths:
       responses:
         200:
           description: "Card successfully retrieved"
+          schema:
+            $ref: "#/definitions/SingleData"
         404:
           description: "Card not found"
           schema:
@@ -207,7 +209,7 @@ paths:
           description: "Object that will overwrite the card specified by its id"
           required: true
           schema:
-            $ref: "#/definitions/Data"
+            $ref: "#/definitions/SingleData"
       responses:
         204:
           description: "Card successfully updated"
@@ -251,7 +253,7 @@ paths:
 
 definitions:
 
-  SingleCard:
+  Card:
     type: "object"
     properties:
       id:
@@ -273,15 +275,19 @@ definitions:
           energy:
             type: "integer"
 
-  MultipleCards:
+  SingleData:
+    type: "object"
+    properties:
+      data:
+        $ref: "#/definitions/Card"
+
+  MultiData:
     type: "object"
     properties:
       data:
         type: "array"
         items:
-          type: "object"
-          schema:
-            $ref: "#definitions/SingleCard"
+          $ref: "#/definitions/Card"
 
   Error: # Not really sure what goes here yet
     type: "object"
