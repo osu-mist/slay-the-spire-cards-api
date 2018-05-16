@@ -138,10 +138,10 @@ paths:
           description: "Card object to be added to the database"
           required: true
           schema:
-            $ref: "#/definitions/SingleData"
+            $ref: "#/definitions/NewData"
 
       responses:
-        200:
+        201:
           description: "Card successfully added"
           schema:
             $ref: "#/definitions/SingleData"
@@ -208,7 +208,7 @@ paths:
           description: "Object that will overwrite the card specified by its id"
           required: true
           schema:
-            $ref: "#/definitions/NewData"
+            $ref: "#/definitions/SingleData"
       responses:
         200:
           description: "Card successfully updated"
@@ -244,10 +244,8 @@ paths:
           type: "integer"
           format: "int64"
       responses:
-        200:
+        204:
           description: "Card successfully removed"
-          schema:
-            $ref: "#/definitions/SingleData"
         404:
           description: "No card with this id"
           schema:
@@ -262,32 +260,32 @@ definitions:
   Card:
     type: "object"
     properties:
-      id:
-        type: "integer"
-        format: "int64"
       type:
         type: "string"
-      attributes:
-        type: "object"
-        properties:
-          type:
-            type: "string"
-          name:
-            type: "string"
-          color:
-            type: "string"
-          rarity:
-            type: "string"
-          energy:
-            type: "integer"
-          description:
-            type: "string"
+      name:
+        type: "string"
+      color:
+        type: "string"
+      rarity:
+        type: "string"
+      energy:
+        type: "integer"
+      description:
+        type: "string"
 
   SingleData:
     type: "object"
     properties:
       data:
-        $ref: "#/definitions/Card"
+        type: "object"
+        properties:
+          id:
+            type: "integer"
+            format: "int64"
+          type:
+            type: "string"
+          attributes:
+            $ref: "#/definitions/Card"
 
   MultiData:
     type: "object"
@@ -295,7 +293,15 @@ definitions:
       data:
         type: "array"
         items:
-          $ref: "#/definitions/Card"
+          type: "object"
+          properties:
+            id:
+              type: "integer"
+              format: "int64"
+            type:
+              type: "string"
+            attributes:
+              $ref: "#/definitions/Card"
 
   NewData:
     type: "object"
@@ -306,20 +312,7 @@ definitions:
           type:
             type: "string"
           attributes:
-            type: "object"
-            properties:
-              type:
-                type: "string"
-              name:
-                type: "string"
-              color:
-                type: "string"
-              rarity:
-                type: "string"
-              energy:
-                type: "integer"
-              description:
-                type: "string"
+            $ref: "#/definitions/Card"
 
   Error:
     type: "object"
