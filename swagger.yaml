@@ -19,110 +19,103 @@ paths:
       tags:
       - "cards"
       summary: "Retrieve cards based on search parameters"
-      description: ""
       operationId: "getCards"
       consumes:
       - "application/json"
       produces:
       - "application/json"
       parameters:
-        - name: "id"
-          in: "query"
-          description: "id of card in database"
-          required: false
-          type: "integer"
-          format: "int64"
 
-        - name: "types"
-          in: "query"
-          description: "List of types of cards"
-          required: false
-          type: "array"
-          items:
-            type: "string"
-            enum:
-            - "attack"
-            - "skill"
-            - "power"
-            - "status"
-            - "curse"
-            default: "attack,skill,power,status,curse"
-          collectionFormat: "multi"
+      - name: "types"
+        in: "query"
+        description: "List of types of cards"
+        required: false
+        type: "array"
+        items:
+          type: "string"
+          enum:
+          - "attack"
+          - "skill"
+          - "power"
+          - "status"
+          - "curse"
+        collectionFormat: "multi"
 
-        - name: "name"
-          in: "query"
-          description: "Card name"
-          required: false
+      - name: "name"
+        in: "query"
+        description: "Card name (or part of it)"
+        required: false
+        type: "string"
+
+      - name: "colors"
+        in: "query"
+        description: "List of colors of cards"
+        required: false
+        type: "array"
+        items:
+          type: "string"
+          enum:
+          - "red"
+          - "green"
+          - "blue"
+          - "colorless"
+        collectionFormat: "multi"
+
+      - name: "rarities"
+        in: "query"
+        description: "List of rarities of cards"
+        required: false
+        type: "array"
+        items:
+          type: "string"
+          enum:
+          - "basic"
+          - "common"
+          - "uncommon"
+          - "rare"
+        collectionFormat: "multi"
+
+      - name: "energyMin"
+        in: "query"
+        description: "Minimum value of energy costs of cards (X = 0). Used with energyMax"
+        required: false
+        type: "integer"
+
+      - name: "energyMax"
+        in: "query"
+        description: "Maximum value of energy costs of cards (X = 0). Used with energyMin"
+        required: false
+        type: "integer"
+
+      - name: "keywords"
+        in: "query"
+        description: "List of keywords found in a card's description"
+        required: false
+        type: "array"
+        items:
           type: "string"
 
-        - name: "color"
-          in: "query"
-          description: "List of colors of cards"
-          required: false
-          type: "array"
-          items:
-            type: "string"
-            enum:
-            - "red"
-            - "green"
-            - "blue"
-            - "colorless"
-            default: "red,green,blue,colorless"
-          collectionFormat: "multi"
+      - name: "number"
+        in: "query"
+        description: "Number of cards to return"
+        required: false
+        type: "integer"
+        default: 10
 
-        - name: "rarity"
-          in: "query"
-          description: "List of rarities of cards"
-          required: false
-          type: "array"
-          items:
-            type: "string"
-            enum:
-            - "basic"
-            - "common"
-            - "uncommon"
-            - "rare"
-            default: "basic,common,uncommon,rare"
-          collectionFormat: "multi"
-
-        - name: "energyMin"
-          in: "query"
-          description: "Minimum value of energy costs of cards (X = 0). Used with energyMax"
-          required: false
-          type: "integer"
-
-        - name: "energyMax"
-          in: "query"
-          description: "Maximum value of energy costs of cards (X = 0). Used with energyMin"
-          required: false
-          type: "integer"
-
-        - name: "keywords"
-          in: "query"
-          description: "List of keywords found in a card's description"
-          required: false
-          type: "array"
-          items:
-            type: "string"
-
-        - name: "number"
-          in: "query"
-          description: "Number of cards to return"
-          required: false
-          type: integer
-          default: 10
+      - name: "isRandom"
+        in: "query"
+        description: "If true, cards are returned in a random order"
+        required: false
+        type: "boolean"
+        default: true
 
       responses:
         200:
-          description: "Cards successfully retrieved"
+          description: "Card(s) successfully retrieved"
           schema:
             $ref: "#/definitions/MultiData"
         400:
           description: "Invalid request"
-          schema:
-            $ref: "#/definitions/Error"
-        404:
-          description: "Card not found"
           schema:
             $ref: "#/definitions/Error"
         500:
@@ -134,7 +127,6 @@ paths:
       tags:
       - "cards"
       summary: "Add a new card to the database"
-      description: ""
       operationId: "addCard"
       consumes:
       - "application/json"
@@ -149,13 +141,18 @@ paths:
             $ref: "#/definitions/SingleData"
 
       responses:
-        201:
+        200:
           description: "Card successfully added"
+          schema:
+            $ref: "#/definitions/SingleData"
         400:
           description: "Invalid syntax in POST request"
           schema:
             $ref: "#/definitions/Error"
-
+        500:
+          description: "Internal server error"
+          schema:
+            $ref: "#/definitions/Error"
 
   /cards/{id}:
 
@@ -163,7 +160,6 @@ paths:
       tags:
       - cards
       summary: "Retrieve a card by its id"
-      description: ""
       operationId: "getCardById"
       consumes:
       - "application/json"
@@ -182,7 +178,11 @@ paths:
           schema:
             $ref: "#/definitions/SingleData"
         404:
-          description: "Card not found"
+          description: "No card with this id"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal server error"
           schema:
             $ref: "#/definitions/Error"
 
@@ -190,7 +190,6 @@ paths:
       tags:
       - cards
       summary: "Update a card specified by its id"
-      description: ""
       operationId: "updateCardById"
       consumes:
       - "application/json"
@@ -209,16 +208,22 @@ paths:
           description: "Object that will overwrite the card specified by its id"
           required: true
           schema:
-            $ref: "#/definitions/SingleData"
+            $ref: "#/definitions/NewData"
       responses:
-        204:
+        200:
           description: "Card successfully updated"
+          schema:
+            $ref: "#/definitions/SingleData"
         400:
           description: "Invalid syntax in PUT request"
           schema:
             $ref: "#/definitions/Error"
         404:
-          description: "Card not found"
+          description: "No card with this id"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal server error"
           schema:
             $ref: "#/definitions/Error"
 
@@ -226,7 +231,6 @@ paths:
       tags:
       - cards
       summary: "Remove a card specified by its id"
-      description: ""
       operationId: "removeCardById"
       consumes:
       - "application/json"
@@ -240,14 +244,16 @@ paths:
           type: "integer"
           format: "int64"
       responses:
-        204:
+        200:
           description: "Card successfully removed"
-        400:
-          description: "Invalid syntax in DELETE request"
+          schema:
+            $ref: "#/definitions/SingleData"
+        404:
+          description: "No card with this id"
           schema:
             $ref: "#/definitions/Error"
-        404:
-          description: "Card not found"
+        500:
+          description: "Internal server error"
           schema:
             $ref: "#/definitions/Error"
 
@@ -274,6 +280,8 @@ definitions:
             type: "string"
           energy:
             type: "integer"
+          description:
+            type: "string"
 
   SingleData:
     type: "object"
@@ -289,7 +297,31 @@ definitions:
         items:
           $ref: "#/definitions/Card"
 
-  Error: # Not really sure what goes here yet
+  NewData:
+    type: "object"
+    properties:
+      data:
+        type: "object"
+        properties:
+          type:
+            type: "string"
+          attributes:
+            type: "object"
+            properties:
+              type:
+                type: "string"
+              name:
+                type: "string"
+              color:
+                type: "string"
+              rarity:
+                type: "string"
+              energy:
+                type: "integer"
+              description:
+                type: "string"
+
+  Error:
     type: "object"
     properties:
       error message:
