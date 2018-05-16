@@ -1,75 +1,323 @@
 swagger: '2.0'
+
 info:
-  title: Web API Skeleton
-  description: Skeleton for Dropwizard Web APIs
-  version: '0.0'
-  license:
-    name: GNU Affero General Public License Version 3
-    url: http://www.gnu.org/licenses/agpl-3.0.en.html
-externalDocs:
-  description: GitHub Repository
-  url: https://github.com/osu-mist/web-api-skeleton
-host: localhost
+  description: "This provides an API for interacting with a database of cards from the video game Slay the Spire. It allows users to retrieve cards, add new cards, update cards, and delete cards from the database."
+  version: "1.0"
+  title: "Slay the Spire Cards API"
+
+tags:
+- name: "cards"
+  description: "Contains information on cards"
+
 schemes:
-  - http
-basePath: /api/v0
-consumes:
-  - text/plain
-produces:
-  - text/plain
+- "https"
+
 paths:
-  /:
+  /cards:
+
     get:
-      summary: Get information
-      description: Build and runtime information about the application.
+      tags:
+      - "cards"
+      summary: "Retrieve cards based on search parameters"
+      operationId: "getCards"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
       parameters:
-        - $ref: '#/parameters/pretty'
+
+      - name: "types"
+        in: "query"
+        description: "List of types of cards"
+        required: false
+        type: "array"
+        items:
+          type: "string"
+          enum:
+          - "attack"
+          - "skill"
+          - "power"
+          - "status"
+          - "curse"
+        collectionFormat: "multi"
+
+      - name: "name"
+        in: "query"
+        description: "Card name (or part of it)"
+        required: false
+        type: "string"
+
+      - name: "colors"
+        in: "query"
+        description: "List of colors of cards"
+        required: false
+        type: "array"
+        items:
+          type: "string"
+          enum:
+          - "red"
+          - "green"
+          - "blue"
+          - "colorless"
+        collectionFormat: "multi"
+
+      - name: "rarities"
+        in: "query"
+        description: "List of rarities of cards"
+        required: false
+        type: "array"
+        items:
+          type: "string"
+          enum:
+          - "basic"
+          - "common"
+          - "uncommon"
+          - "rare"
+        collectionFormat: "multi"
+
+      - name: "energyMin"
+        in: "query"
+        description: "Minimum value of energy costs of cards (X = 0). Used with energyMax"
+        required: false
+        type: "integer"
+
+      - name: "energyMax"
+        in: "query"
+        description: "Maximum value of energy costs of cards (X = 0). Used with energyMin"
+        required: false
+        type: "integer"
+
+      - name: "keywords"
+        in: "query"
+        description: "List of keywords found in a card's description"
+        required: false
+        type: "array"
+        items:
+          type: "string"
+
+      - name: "number"
+        in: "query"
+        description: "Number of cards to return"
+        required: false
+        type: "integer"
+        default: 10
+
+      - name: "isRandom"
+        in: "query"
+        description: "If true, cards are returned in a random order"
+        required: false
+        type: "boolean"
+        default: true
+
       responses:
         200:
-          description: Object containing information
+          description: "Card(s) successfully retrieved"
           schema:
-            $ref: '#/definitions/Info'
+            $ref: "#/definitions/MultiData"
+        400:
+          description: "Invalid request"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal server error"
+          schema:
+            $ref: "#/definitions/Error"
 
-parameters:
-  pretty:
-    name: pretty
-    in: query
-    type: boolean
-    required: false
-    description: If true, JSON response will be pretty-printed
+    post:
+      tags:
+      - "cards"
+      summary: "Add a new card to the database"
+      operationId: "addCard"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+        - name: "body"
+          in: "body"
+          description: "Card object to be added to the database"
+          required: true
+          schema:
+            $ref: "#/definitions/NewData"
+
+      responses:
+        201:
+          description: "Card successfully added"
+          schema:
+            $ref: "#/definitions/SingleData"
+        400:
+          description: "Invalid syntax in POST request"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal server error"
+          schema:
+            $ref: "#/definitions/Error"
+
+  /cards/{id}:
+
+    get:
+      tags:
+      - cards
+      summary: "Retrieve a card by its id"
+      operationId: "getCardById"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+        - name: "id"
+          in: "path"
+          description: "Id of card to be retrieved"
+          required: true
+          type: "integer"
+          format: "int64"
+      responses:
+        200:
+          description: "Card successfully retrieved"
+          schema:
+            $ref: "#/definitions/SingleData"
+        404:
+          description: "No card with this id"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal server error"
+          schema:
+            $ref: "#/definitions/Error"
+
+    put:
+      tags:
+      - cards
+      summary: "Update a card specified by its id"
+      operationId: "updateCardById"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+        - name: "id"
+          in: "path"
+          description: "Id of card to be updated"
+          required: true
+          type: "integer"
+          format: "int64"
+
+        - name: "body"
+          in: "body"
+          description: "Object that will overwrite the card specified by its id"
+          required: true
+          schema:
+            $ref: "#/definitions/SingleData"
+      responses:
+        200:
+          description: "Card successfully updated"
+          schema:
+            $ref: "#/definitions/SingleData"
+        400:
+          description: "Invalid syntax in PUT request"
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: "No card with this id"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal server error"
+          schema:
+            $ref: "#/definitions/Error"
+
+    delete:
+      tags:
+      - cards
+      summary: "Remove a card specified by its id"
+      operationId: "removeCardById"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+        - name: "id"
+          in: "path"
+          description: "Id of card to be removed"
+          required: true
+          type: "integer"
+          format: "int64"
+      responses:
+        204:
+          description: "Card successfully removed"
+        404:
+          description: "No card with this id"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal server error"
+          schema:
+            $ref: "#/definitions/Error"
 
 definitions:
-  Info:
+
+  Card:
+    type: "object"
     properties:
+      type:
+        type: "string"
       name:
-        type: string
-        description: Name of the API.
-      time:
-        type: string
-        description: Build time in ISO 8601 format.
-      unixTime:
-        type: integer
-        description: Build time as milliseconds since the unix epoch.
-      commit:
-        type: string
-        description: Git commit hash of the revision which was built.
-      documentation:
-        type: string
-        description: Filename of the swagger specification for the API.
-  Error:
+        type: "string"
+      color:
+        type: "string"
+      rarity:
+        type: "string"
+      energy:
+        type: "integer"
+      description:
+        type: "string"
+
+  SingleData:
+    type: "object"
     properties:
-      status:
-        type: integer
-        description: HTTP status code.
-      developerMessage:
-        type: string
-        description: An error string aimed at developers.
-      userMesage:
-        type: string
-        description: An error string aimed at end users.
-      code:
-        type: integer
-        description: Error code.
-      details:
-        type: string
-        description: A link to further information about the error.
+      data:
+        type: "object"
+        properties:
+          id:
+            type: "integer"
+            format: "int64"
+          type:
+            type: "string"
+          attributes:
+            $ref: "#/definitions/Card"
+
+  MultiData:
+    type: "object"
+    properties:
+      data:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            id:
+              type: "integer"
+              format: "int64"
+            type:
+              type: "string"
+            attributes:
+              $ref: "#/definitions/Card"
+
+  NewData:
+    type: "object"
+    properties:
+      data:
+        type: "object"
+        properties:
+          type:
+            type: "string"
+          attributes:
+            $ref: "#/definitions/Card"
+
+  Error:
+    type: "object"
+    properties:
+      error message:
+        type: "string"
+      error code:
+        type: "integer"
