@@ -19,6 +19,6 @@ class CardsConfiguration extends Configuration {
 
     @JsonProperty("database")
     DataSourceFactory getDataSourceFactory() {
-        return database
+        database
     }
 }
