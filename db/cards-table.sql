@@ -73,14 +73,14 @@ CREATE SEQUENCE card_instance_seq
     INCREMENT BY 1
     CACHE 10;
 
--- Sample card insert
-INSERT INTO CARDS (ID, TYPE_ID, NAME, COLOR_ID, RARITY_ID, ENERGY, DESCRIPTION)
-  VALUES (
-  (card_instance_seq.nextval),
-  (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE='skill'),
-  ('Defend'),
-  (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR='red'),
-  (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY='basic'),
-  (1),
-  ('Gain 5 Block.')
-);
+--Sample card insert
+--INSERT INTO CARDS (ID, TYPE_ID, NAME, COLOR_ID, RARITY_ID, ENERGY, DESCRIPTION)
+--  VALUES (
+--  (card_instance_seq.nextval),
+--  (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE='skill'),
+--  ('Defend'),
+--  (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR='red'),
+--  (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY='basic'),
+--  (1),
+--  ('Gain 5 Block.')
+--);
