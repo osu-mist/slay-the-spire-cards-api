@@ -10,6 +10,7 @@ import javax.validation.constraints.NotNull
 class CardsConfiguration extends Configuration {
     @Valid
     @NotNull
+    @JsonProperty("database")
     private DataSourceFactory database = new DataSourceFactory()
 
     @JsonProperty("database")

@@ -2,11 +2,15 @@ package edu.oregonstate.mist.cardsapi.resources
 
 import io.dropwizard.jersey.params.IntParam
 import edu.oregonstate.mist.cardsapi.core.Card
+import edu.oregonstate.mist.cardsapi.core.SimpleCard
 import edu.oregonstate.mist.cardsapi.db.CardDAO
 import edu.oregonstate.mist.api.Resource
 import edu.oregonstate.mist.api.jsonapi.ResourceObject
 import edu.oregonstate.mist.api.jsonapi.ResultObject
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
+import javax.print.attribute.standard.Media
 import javax.ws.rs.DELETE
 import javax.ws.rs.GET
 import javax.ws.rs.POST
@@ -22,7 +26,9 @@ import javax.validation.Valid
 // This will get a Card object from CardDAO and send responses for different endpoints
 
 @Path('/cards')
+@Produces(MediaType.APPLICATION_JSON)
 class CardsResource extends Resource {
+    Logger logger = LoggerFactory.getLogger(CardsResource.class)
 
     private final CardDAO cardDAO
 
@@ -34,14 +40,14 @@ class CardsResource extends Resource {
         new ResourceObject(
                 id: card.id,
                 type: 'card',
-                attributes: {
-                    type: card.type
-                    name: card.name
-                    color: card.color
-                    rarity: card.rarity
-                    energy: card.energy
-                    description: card.description
-                },
+                attributes: new SimpleCard (
+                        type: card.type,
+                        name: card.name,
+                        color: card.color,
+                        rarity: card.rarity,
+                        energy: card.energy,
+                        description: card.description
+                ),
                 links: null
         )
     }
@@ -61,12 +67,11 @@ class CardsResource extends Resource {
         Response response
         Card card = cardDAO.getCardById(id.get())
 
-        ResultObject cardResult = cardsResult(card)
-
-        if(card) {
-            response = ok(cardResult).build()
-        } else {
+        if(card == null) {
             response = notFound().build()
+        } else {
+            ResultObject cardResult = cardsResult(card)
+            response = ok(cardResult).build()
         }
         response
     }

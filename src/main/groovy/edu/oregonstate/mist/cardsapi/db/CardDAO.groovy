@@ -9,7 +9,7 @@ import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper
 
 // This will query the database and return a Card object
 @RegisterMapper(CardsMapper)
-interface CardDAO {
+interface CardDAO extends Closeable {
     // GET by parameters (work in progress)
 //    @SqlQuery ("""
 //        SELECT
@@ -62,14 +62,15 @@ interface CardDAO {
 
         FROM CARDS
 
-        INNER JOIN CARD_TYPES ON CARDS.TYPE_ID = CARD_TYPES.TYPE_ID
-        INNER JOIN CARD_COLORS ON CARDS.COLOR_ID = CARD_COLORS.COLOR_ID
-        INNER JOIN CARD_RARITIES ON CARDS.RARITY_ID = CARD_RARITIES.RARITY_ID
+        LEFT JOIN CARD_TYPES ON CARDS.TYPE_ID = CARD_TYPES.TYPE_ID
+        LEFT JOIN CARD_COLORS ON CARDS.COLOR_ID = CARD_COLORS.COLOR_ID
+        LEFT JOIN CARD_RARITIES ON CARDS.RARITY_ID = CARD_RARITIES.RARITY_ID
         
         WHERE CARDS.ID = :id
     """)
-    Card getCardById(@Bind("id") int id)
+    Card getCardById(@Bind("id") Integer id)
 
+    @Override
     void close()
 }
 
