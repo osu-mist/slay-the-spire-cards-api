@@ -45,7 +45,8 @@ interface CardDAO extends Closeable {
 //                          @Bind("keywords") String[] keywords,
 //                          @Bind("number") int number,
 //                          @Bind("isRandom") boolean isRandom)
-
+    
+    // GET card by id
     @SqlQuery ("""
         SELECT
             CARDS.ID,
