@@ -11,40 +11,49 @@ import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper
 @RegisterMapper(CardsMapper)
 interface CardDAO extends Closeable {
     // GET by parameters (work in progress)
-//    @SqlQuery ("""
-//        SELECT
-//            CARDS.ID,
-//            CARDS.TYPE_ID,
-//            CARDS.NAME,
-//            CARDS.COLOR_ID,
-//            CARDS.RARITY_ID,
-//            CARDS.ENERGY,
-//            CARDS.DESCRIPTION,
-//
-//            CARD_TYPES.TYPE,
-//            CARD_COLORS.COLOR,
-//            CARD_RARITIES.RARITY
-//
-//        FROM CARDS
-//
-//        INNER JOIN CARD_TYPES ON CARDS.TYPE_ID = CARD_TYPES.TYPE_ID
-//        INNER JOIN CARD_COLORS ON CARDS.COLOR_ID = CARD_COLORS.COLOR_ID
-//        INNER JOIN CARD_RARITIES ON CARDS.RARITY_ID = CARD_RARITIES.RARITY_ID
-//
-//        WHERE
-//            CARDS.TYPE LIKE
-//
-//
-//    """)
-//    List<Card> getCards(@Bind("types") String[] types,
-//                          @Bind("name") String name,
-//                          @Bind("colors") String[] colors,
-//                          @Bind("rarities") String [] rarities,
-//                          @Bind("energyMin") int energyMin,
-//                          @Bind("energyMax") int energyMax,
-//                          @Bind("keywords") String[] keywords,
-//                          @Bind("number") int number,
-//                          @Bind("isRandom") boolean isRandom)
+    @SqlQuery ("""
+        SELECT
+            CARDS.ID,
+            CARDS.TYPE_ID,
+            CARDS.NAME,
+            CARDS.COLOR_ID,
+            CARDS.RARITY_ID,
+            CARDS.ENERGY,
+            CARDS.DESCRIPTION,
+
+            CARD_TYPES.TYPE,
+            CARD_COLORS.COLOR,
+            CARD_RARITIES.RARITY
+
+        FROM (
+            SELECT *
+            FROM CARDS
+            ORDER BY DBMS_RANDOM.VALUE)
+
+        LEFT JOIN CARD_TYPES ON CARDS.TYPE_ID = CARD_TYPES.TYPE_ID
+        LEFT JOIN CARD_COLORS ON CARDS.COLOR_ID = CARD_COLORS.COLOR_ID
+        LEFT JOIN CARD_RARITIES ON CARDS.RARITY_ID = CARD_RARITIES.RARITY_ID
+
+        WHERE
+            CARDS.TYPE LIKE ALL :types
+            AND CARDS.NAME LIKE :name
+            AND CARDS.COLOR LIKE ALL :colors
+            AND CARDS.RARITY LIKE ALL :rarities
+            AND CARDS.ENERGY >= :energyMin
+            AND CARDS.ENERGY <= :energyMax
+            AND CARDS.DESCRIPTION LIKE ALL :keywords
+            
+        FETCH FIRST :number ROWS ONLY;
+    """)
+    List<Card> getCards(@Bind("types") String[] types,
+                          @Bind("name") String name,
+                          @Bind("colors") String[] colors,
+                          @Bind("rarities") String [] rarities,
+                          @Bind("energyMin") int energyMin,
+                          @Bind("energyMax") int energyMax,
+                          @Bind("keywords") String[] keywords,
+                          @Bind("number") int number,
+                          @Bind("isRandom") boolean isRandom)
 
     @SqlQuery ("""
         SELECT

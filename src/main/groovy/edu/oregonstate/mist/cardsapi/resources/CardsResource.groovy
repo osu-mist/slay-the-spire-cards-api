@@ -1,6 +1,8 @@
 package edu.oregonstate.mist.cardsapi.resources
 
 import io.dropwizard.jersey.params.IntParam
+import io.dropwizard.jersey.params.NonEmptyStringParam
+import io.dropwizard.jersey.params.BooleanParam
 import edu.oregonstate.mist.cardsapi.core.Card
 import edu.oregonstate.mist.cardsapi.core.SimpleCard
 import edu.oregonstate.mist.cardsapi.db.CardDAO
@@ -22,6 +24,7 @@ import javax.ws.rs.core.Response
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.QueryParam
 import javax.validation.Valid
+import com.google.common.base.Optional
 
 // This will get a Card object from CardDAO and send responses for different endpoints
 
@@ -58,6 +61,12 @@ class CardsResource extends Resource {
         )
     }
 
+    ResultObject cardsResult(List<Card> cards) {
+        new ResultObject(
+                data: cards.collect {singleCard -> cardsResource(singleCard)}
+        )
+    }
+
     // Get card by id
     @GET
     @Path ('{id}')
@@ -73,6 +82,34 @@ class CardsResource extends Resource {
             ResultObject cardResult = cardsResult(card)
             response = ok(cardResult).build()
         }
+        response
+    }
+
+    //Get cards by parameters
+    @GET
+    @Path ('')
+    @Produces(MediaType.APPLICATION_JSON)
+    Response getCards(@QueryParam("types") List<String> types,
+                      @QueryParam("name") List<String> name,
+                      @QueryParam("colors") List<String> colors,
+                      @QueryParam("rarities") List<String> rarities,
+                      @QueryParam("energyMin") IntParam energyMin,
+                      @QueryParam("energyMax") IntParam energyMax,
+                      @QueryParam("keywords") List<String> keywords,
+                      @QueryParam("number") IntParam number,
+                      @QueryParam("isRandom") BooleanParam isRandom) {
+
+        Response response
+
+        if(types == null) {
+            types = []
+        }
+
+        List<Card> cards = cardDAO.getCards(types.get(), name.get(), colors.get(), rarities.get(),
+                energyMin.get(), energyMax.get(), keywords.get(), number.get(), isRandom.get())
+
+        ResultObject cardResult = cardsResult(cards)
+        response = ok(cardResult).build()
         response
     }
 }
