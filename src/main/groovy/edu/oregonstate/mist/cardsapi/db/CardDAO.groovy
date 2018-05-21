@@ -1,12 +1,14 @@
 package edu.oregonstate.mist.cardsapi.db
 
 import edu.oregonstate.mist.cardsapi.core.Card
+import edu.oregonstate.mist.cardsapi.mapper.CardsMapper
 import org.skife.jdbi.v2.sqlobject.Bind
 import org.skife.jdbi.v2.sqlobject.SqlQuery
 import org.skife.jdbi.v2.sqlobject.SqlUpdate
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper
 
 // This will query the database and return a Card object
+@RegisterMapper(CardsMapper)
 interface CardDAO {
     // GET by parameters (work in progress)
 //    @SqlQuery ("""
@@ -34,7 +36,7 @@ interface CardDAO {
 //
 //
 //    """)
-//    List<String> getCards(@Bind("types") String[] types,
+//    List<Card> getCards(@Bind("types") String[] types,
 //                          @Bind("name") String name,
 //                          @Bind("colors") String[] colors,
 //                          @Bind("rarities") String [] rarities,
@@ -66,8 +68,9 @@ interface CardDAO {
         
         WHERE CARDS.ID = :id
     """)
-    void getCardById(@Bind("id") int id)
+    Card getCardById(@Bind("id") int id)
 
+    void close()
 }
 
 //final CardDAO dao = database.onDemand(CardDAO.class)

@@ -4,6 +4,9 @@ import io.dropwizard.jersey.params.IntParam
 import edu.oregonstate.mist.cardsapi.core.Card
 import edu.oregonstate.mist.cardsapi.db.CardDAO
 import edu.oregonstate.mist.api.Resource
+import edu.oregonstate.mist.api.jsonapi.ResourceObject
+import edu.oregonstate.mist.api.jsonapi.ResultObject
+
 import javax.ws.rs.DELETE
 import javax.ws.rs.GET
 import javax.ws.rs.POST
@@ -27,6 +30,28 @@ class CardsResource extends Resource {
         this.cardDAO = cardDAO
     }
 
+    ResourceObject cardsResource(Card card) {
+        new ResourceObject(
+                id: card.id,
+                type: 'card',
+                attributes: {
+                    type: card.type
+                    name: card.name
+                    color: card.color
+                    rarity: card.rarity
+                    energy: card.energy
+                    description: card.description
+                },
+                links: null
+        )
+    }
+
+    ResultObject cardsResult(Card card) {
+        new ResultObject(
+                data: cardsResource(card)
+        )
+    }
+
     // Get card by id
     @GET
     @Path ('{id}')
@@ -36,8 +61,10 @@ class CardsResource extends Resource {
         Response response
         Card card = cardDAO.getCardById(id.get())
 
+        ResultObject cardResult = cardsResult(card)
+
         if(card) {
-            response = ok(Card).build()
+            response = ok(cardResult).build()
         } else {
             response = notFound().build()
         }
