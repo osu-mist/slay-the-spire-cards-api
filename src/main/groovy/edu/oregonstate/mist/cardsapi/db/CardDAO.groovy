@@ -6,9 +6,12 @@ import org.skife.jdbi.v2.sqlobject.Bind
 import org.skife.jdbi.v2.sqlobject.SqlQuery
 import org.skife.jdbi.v2.sqlobject.SqlUpdate
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper
+import org.skife.jdbi.v2.sqlobject.stringtemplate.UseStringTemplate3StatementLocator
+import org.skife.jdbi.v2.unstable.BindIn
 
 // This will query the database and return a Card object
 @RegisterMapper(CardsMapper)
+@UseStringTemplate3StatementLocator
 interface CardDAO extends Closeable {
     // GET by parameters (work in progress)
     @SqlQuery ("""
@@ -25,35 +28,36 @@ interface CardDAO extends Closeable {
             CARD_COLORS.COLOR,
             CARD_RARITIES.RARITY
 
-        FROM (
-            SELECT *
-            FROM CARDS
-            ORDER BY DBMS_RANDOM.VALUE)
+        FROM CARDS
 
         LEFT JOIN CARD_TYPES ON CARDS.TYPE_ID = CARD_TYPES.TYPE_ID
         LEFT JOIN CARD_COLORS ON CARDS.COLOR_ID = CARD_COLORS.COLOR_ID
         LEFT JOIN CARD_RARITIES ON CARDS.RARITY_ID = CARD_RARITIES.RARITY_ID
 
         WHERE
-            CARDS.TYPE LIKE ALL :types
-            AND CARDS.NAME LIKE :name
-            AND CARDS.COLOR LIKE ALL :colors
-            AND CARDS.RARITY LIKE ALL :rarities
+            CARDS.NAME LIKE '%'||:name||'%'
             AND CARDS.ENERGY >= :energyMin
-            AND CARDS.ENERGY <= :energyMax
-            AND CARDS.DESCRIPTION LIKE ALL :keywords
-            
-        FETCH FIRST :number ROWS ONLY;
-    """)
-    List<Card> getCards(@Bind("types") String[] types,
+            AND CARDS.ENERGY \\<= :energyMax
+     """)
+//            CARD_TYPES.TYPE IN (\\<types>)
+//            AND CARDS.NAME LIKE :name
+//            AND CARD_COLORS.COLOR IN (\\<colors>)
+//            AND CARD_RARITIES.RARITY IN (\\<rarities>)
+//            AND CARDS.ENERGY >= :energyMin
+//            AND CARDS.ENERGY \\<= :energyMax
+//            AND CARDS.DESCRIPTION IN (\\<keywords>)
+//
+//        FETCH FIRST :cardNumber ROWS ONLY
+//    """)
+    List<Card> getCards(@BindIn("types") List<String> types,
                           @Bind("name") String name,
-                          @Bind("colors") String[] colors,
-                          @Bind("rarities") String [] rarities,
-                          @Bind("energyMin") int energyMin,
-                          @Bind("energyMax") int energyMax,
-                          @Bind("keywords") String[] keywords,
-                          @Bind("number") int number,
-                          @Bind("isRandom") boolean isRandom)
+                          @BindIn("colors") List<String> colors,
+                          @BindIn("rarities") List<String> rarities,
+                          @Bind("energyMin") Integer energyMin,
+                          @Bind("energyMax") Integer energyMax,
+                          @BindIn("keywords") List<String> keywords,
+                          @Bind("cardNumber") Integer cardNumber,
+                          @Bind("isRandom") Boolean isRandom)
 
     @SqlQuery ("""
         SELECT
