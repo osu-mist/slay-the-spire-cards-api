@@ -15,6 +15,7 @@ import org.skife.jdbi.v2.unstable.BindIn
 interface CardDAO extends Closeable {
     // GET by parameters (work in progress)
     @SqlQuery ("""
+        
         SELECT
             CARDS.ID,
             CARDS.TYPE_ID,
@@ -38,13 +39,20 @@ interface CardDAO extends Closeable {
             CARDS.NAME LIKE '%'||:name||'%'
             AND CARDS.ENERGY >= :energyMin
             AND CARDS.ENERGY \\<= :energyMax
+            AND TYPE IN (<types>)
+            AND COLOR IN (<colors>)
+            AND RARITY IN (<rarities>)
+        
+        ORDER BY DBMS_RANDOM.VALUE
+        FETCH FIRST :cardNumber ROWS ONLY
      """)
+//          ORDER BY CASE :randomInt
+//          WHEN 1 THEN 'DBMS_RANDOM.VALUE'
+//          ELSE 'ID ASC'
+//          END
 //            CARD_TYPES.TYPE IN (\\<types>)
-//            AND CARDS.NAME LIKE :name
 //            AND CARD_COLORS.COLOR IN (\\<colors>)
 //            AND CARD_RARITIES.RARITY IN (\\<rarities>)
-//            AND CARDS.ENERGY >= :energyMin
-//            AND CARDS.ENERGY \\<= :energyMax
 //            AND CARDS.DESCRIPTION IN (\\<keywords>)
 //
 //        FETCH FIRST :cardNumber ROWS ONLY
@@ -57,7 +65,7 @@ interface CardDAO extends Closeable {
                           @Bind("energyMax") Integer energyMax,
                           @BindIn("keywords") List<String> keywords,
                           @Bind("cardNumber") Integer cardNumber,
-                          @Bind("isRandom") Boolean isRandom)
+                          @Bind("randomInt") Integer randomInt)
 
     @SqlQuery ("""
         SELECT

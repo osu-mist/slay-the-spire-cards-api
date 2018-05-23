@@ -90,23 +90,38 @@ class CardsResource extends Resource {
     @Path ('')
     @Produces(MediaType.APPLICATION_JSON)
     Response getCards(@QueryParam("types") List<String> types,
-                      @QueryParam("name") String name,
+                      @QueryParam("name") Optional<String> name,
                       @QueryParam("colors") List<String> colors,
                       @QueryParam("rarities") List<String> rarities,
-                      @QueryParam("energyMin") Integer energyMin,
-                      @QueryParam("energyMax") Integer energyMax,
+                      @QueryParam("energyMin") Optional<Integer> energyMin,
+                      @QueryParam("energyMax") Optional<Integer> energyMax,
                       @QueryParam("keywords") List<String> keywords,
                       @QueryParam("number") Integer number,
                       @QueryParam("isRandom") Boolean isRandom) {
 
         Response response
 
-//        if(types == null) {
-//            types = []
-//        }
+        Integer randomInt
+        if(isRandom) {
+            randomInt = 1
+        } else {
+            randomInt = 0
+        }
+        if(types.empty) {
+            types = ["skill", "attack", "power", "status", "curse"]
+        }
+        if(keywords.empty) {
+            keywords = [""]
+        }
+        if(colors.empty) {
+            colors = ["red", "green", "blue", "colorless"]
+        }
+        if(rarities.empty) {
+            rarities = ["basic", "common", "uncommon", "rare"]
+        }
 
-        List<Card> cards = cardDAO.getCards(types, name, colors, rarities,
-                energyMin, energyMax, keywords, number, isRandom)
+        List<Card> cards = cardDAO.getCards(types, name.orNull(), colors, rarities,
+                energyMin.or(0), energyMax.or(999), keywords, number, randomInt)
 
         ResultObject cardResult = cardsResult(cards)
         response = ok(cardResult).build()
