@@ -1,5 +1,6 @@
 package edu.oregonstate.mist.cardsapi.resources
 
+import io.dropwizard.auth.Auth
 import io.dropwizard.jersey.params.IntParam
 import io.dropwizard.jersey.params.NonEmptyStringParam
 import io.dropwizard.jersey.params.BooleanParam
@@ -26,17 +27,32 @@ import javax.ws.rs.QueryParam
 import javax.validation.Valid
 import com.google.common.base.Optional
 
+import org.skife.jdbi.v2.Handle
+import org.skife.jdbi.v2.Query
+import edu.oregonstate.mist.cardsapi.mapper.CardsMapper
+import org.skife.jdbi.v2.sqlobject.Bind
+import org.skife.jdbi.v2.sqlobject.SqlQuery
+import org.skife.jdbi.v2.sqlobject.SqlUpdate
+import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper
+import org.skife.jdbi.v2.sqlobject.stringtemplate.UseStringTemplate3StatementLocator
+import org.skife.jdbi.v2.unstable.BindIn
+import org.skife.jdbi.v2.DBI
+
 // This will get a Card object from CardDAO and send responses for different endpoints
 
 @Path('/cards')
 @Produces(MediaType.APPLICATION_JSON)
+//@RegisterMapper(CardsMapper)
+@UseStringTemplate3StatementLocator
 class CardsResource extends Resource {
     Logger logger = LoggerFactory.getLogger(CardsResource.class)
 
     private final CardDAO cardDAO
+    private DBI dbi
 
-    CardsResource(CardDAO cardDAO) {
+    CardsResource(CardDAO cardDAO, DBI dbi) {
         this.cardDAO = cardDAO
+        this.dbi = dbi
     }
 
     ResourceObject cardsResource(Card card) {
@@ -71,7 +87,7 @@ class CardsResource extends Resource {
     @GET
     @Path ('{id}')
     @Produces(MediaType.APPLICATION_JSON)
-    Response getCardById(@PathParam('id') IntParam id) {
+    Response getCardById(@Auth @PathParam('id') IntParam id) {
 
         Response response
         Card card = cardDAO.getCardById(id.get())
@@ -101,12 +117,6 @@ class CardsResource extends Resource {
 
         Response response
 
-        Integer randomInt
-        if(isRandom) {
-            randomInt = 1
-        } else {
-            randomInt = 0
-        }
         if(types.empty) {
             types = ["skill", "attack", "power", "status", "curse"]
         }
@@ -120,11 +130,94 @@ class CardsResource extends Resource {
             rarities = ["basic", "common", "uncommon", "rare"]
         }
 
-        List<Card> cards = cardDAO.getCards(types, name.orNull(), colors, rarities,
-                energyMin.or(0), energyMax.or(999), keywords, number, randomInt)
+        List<Card> cards = getCards(types, name.orNull(), colors, rarities,
+                energyMin.or(0), energyMax.or(999), keywords, number, isRandom)
+
+//        List<Card> cards = cardDAO.getCards(types, name.orNull(), colors, rarities,
+//                energyMin.or(0), energyMax.or(999), keywords, number, randomInt)
 
         ResultObject cardResult = cardsResult(cards)
         response = ok(cardResult).build()
         response
+    }
+
+    String listToSql (List<String> list) {
+        String str = "("
+        for(int i = 0; i < list.size() - 1; i++) {
+            str += "\'" + list[i] + "\',"
+        }
+        str += "\'" + list[list.size() - 1] + "\')"
+        str
+    }
+
+    String keywordsToSql (List<String> keywords) {
+        String str = ""
+        for(int i = 0; i < keywords.size(); i++) {
+            str += "AND DESCRIPTION LIKE '%'||"
+            str += "\'" + keywords[i] + "\'"
+            str += "||'%'"
+        }
+        str
+    }
+
+    List<Card> getCards(List<String> types,
+                        String name,
+                        List<String> colors,
+                        List<String> rarities,
+                        Integer energyMin,
+                        Integer energyMax,
+                        List<String> keywords,
+                        Integer cardNumber,
+                        Boolean isRandom) {
+        Handle h = dbi.open()
+        String query = """
+        
+        SELECT *
+
+        FROM (
+            SELECT *
+            FROM CARDS
+            
+            LEFT JOIN CARD_TYPES ON CARDS.TYPE_ID = CARD_TYPES.TYPE_ID
+            LEFT JOIN CARD_COLORS ON CARDS.COLOR_ID = CARD_COLORS.COLOR_ID
+            LEFT JOIN CARD_RARITIES ON CARDS.RARITY_ID = CARD_RARITIES.RARITY_ID
+            
+            ORDER BY """
+        if (isRandom) {
+            query += "DBMS_RANDOM.VALUE"
+        } else {
+            query += "ID ASC"
+        }
+        query += """)
+
+        WHERE """
+        if(name) {
+            query += "NAME LIKE '%'||:name||'%'\nAND "
+        }
+        query += """ENERGY >= :energyMin
+            AND ENERGY \\<= :energyMax
+            AND TYPE IN """
+        query += listToSql(types)
+        query += """AND COLOR IN """
+        query += listToSql(colors)
+        query += """AND RARITY IN """
+        query += listToSql(rarities)
+        if(keywords) {
+            query += keywordsToSql(keywords)
+        }
+        query += """FETCH FIRST :cardNumber ROWS ONLY"""
+        Query<Map<String, Object>> q = h.createQuery(query)
+            .bind("types", types)
+            .bind("name", name)
+            .bind("colors", colors)
+            .bind("rarities", rarities)
+            .bind("energyMin", energyMin)
+            .bind("energyMax", energyMax)
+            .bind("keywords", keywords)
+            .bind("cardNumber", cardNumber)
+            .map(new CardsMapper())
+
+        List<Card> cards = q.list()
+        cards
     }
 }

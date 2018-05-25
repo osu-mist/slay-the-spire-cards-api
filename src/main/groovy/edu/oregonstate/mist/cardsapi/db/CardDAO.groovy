@@ -16,34 +16,26 @@ interface CardDAO extends Closeable {
     // GET by parameters (work in progress)
     @SqlQuery ("""
         
-        SELECT
-            CARDS.ID,
-            CARDS.TYPE_ID,
-            CARDS.NAME,
-            CARDS.COLOR_ID,
-            CARDS.RARITY_ID,
-            CARDS.ENERGY,
-            CARDS.DESCRIPTION,
+        SELECT *
 
-            CARD_TYPES.TYPE,
-            CARD_COLORS.COLOR,
-            CARD_RARITIES.RARITY
-
-        FROM CARDS
-
-        LEFT JOIN CARD_TYPES ON CARDS.TYPE_ID = CARD_TYPES.TYPE_ID
-        LEFT JOIN CARD_COLORS ON CARDS.COLOR_ID = CARD_COLORS.COLOR_ID
-        LEFT JOIN CARD_RARITIES ON CARDS.RARITY_ID = CARD_RARITIES.RARITY_ID
+        FROM (
+            SELECT *
+            FROM CARDS
+            
+            LEFT JOIN CARD_TYPES ON CARDS.TYPE_ID = CARD_TYPES.TYPE_ID
+            LEFT JOIN CARD_COLORS ON CARDS.COLOR_ID = CARD_COLORS.COLOR_ID
+            LEFT JOIN CARD_RARITIES ON CARDS.RARITY_ID = CARD_RARITIES.RARITY_ID
+            
+            ORDER BY DBMS_RANDOM.VALUE)
 
         WHERE
-            CARDS.NAME LIKE '%'||:name||'%'
-            AND CARDS.ENERGY >= :energyMin
-            AND CARDS.ENERGY \\<= :energyMax
+            NAME LIKE '%'||:name||'%'
+            AND ENERGY >= :energyMin
+            AND ENERGY \\<= :energyMax
             AND TYPE IN (<types>)
             AND COLOR IN (<colors>)
             AND RARITY IN (<rarities>)
         
-        ORDER BY DBMS_RANDOM.VALUE
         FETCH FIRST :cardNumber ROWS ONLY
      """)
 //          ORDER BY CASE :randomInt
