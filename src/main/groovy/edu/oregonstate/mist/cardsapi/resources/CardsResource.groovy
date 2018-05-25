@@ -1,8 +1,10 @@
 package edu.oregonstate.mist.cardsapi.resources
 
 import io.dropwizard.jersey.params.IntParam
+import io.dropwizard.auth.Auth
 import edu.oregonstate.mist.cardsapi.core.Card
-import edu.oregonstate.mist.cardsapi.core.SimpleCard
+import edu.oregonstate.mist.api.AuthenticatedUser
+
 import edu.oregonstate.mist.cardsapi.db.CardDAO
 import edu.oregonstate.mist.api.Resource
 import edu.oregonstate.mist.api.jsonapi.ResourceObject
@@ -10,18 +12,12 @@ import edu.oregonstate.mist.api.jsonapi.ResultObject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import javax.print.attribute.standard.Media
-import javax.ws.rs.DELETE
 import javax.ws.rs.GET
-import javax.ws.rs.POST
-import javax.ws.rs.PUT
 import javax.ws.rs.Path
 import javax.ws.rs.PathParam
 import javax.ws.rs.Produces
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.MediaType
-import javax.ws.rs.QueryParam
-import javax.validation.Valid
 
 // This will get a Card object from CardDAO and send responses for different endpoints
 
@@ -40,7 +36,7 @@ class CardsResource extends Resource {
         new ResourceObject(
                 id: card.id,
                 type: 'card',
-                attributes: new SimpleCard (
+                attributes: new Card (
                         type: card.type,
                         name: card.name,
                         color: card.color,
@@ -62,17 +58,16 @@ class CardsResource extends Resource {
     @GET
     @Path ('{id}')
     @Produces(MediaType.APPLICATION_JSON)
-    Response getCardById(@PathParam('id') IntParam id) {
+    Response getCardById(@Auth AuthenticatedUser authenticatedUser, @PathParam('id') IntParam id) {
 
-        Response response
         Card card = cardDAO.getCardById(id.get())
 
-        if(card == null) {
-            response = notFound().build()
-        } else {
+        if(card) {
             ResultObject cardResult = cardsResult(card)
-            response = ok(cardResult).build()
+            ok(cardResult).build()
+        } else {
+            notFound().build()
         }
-        response
+
     }
 }
