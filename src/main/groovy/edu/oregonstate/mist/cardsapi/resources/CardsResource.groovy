@@ -28,7 +28,6 @@ import org.skife.jdbi.v2.Query
 import edu.oregonstate.mist.cardsapi.mapper.CardsMapper
 import org.skife.jdbi.v2.DBI
 
-
 // This will get a Card object from CardDAO and send responses for different endpoints
 
 @Path('/cards')
