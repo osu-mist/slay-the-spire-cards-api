@@ -14,7 +14,9 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import javax.print.attribute.standard.Media
+import javax.validation.constraints.Pattern
 import javax.ws.rs.DELETE
+import javax.ws.rs.DefaultValue
 import javax.ws.rs.GET
 import javax.ws.rs.POST
 import javax.ws.rs.PUT
@@ -59,14 +61,7 @@ class CardsResource extends Resource {
         new ResourceObject(
                 id: card.id,
                 type: 'card',
-                attributes: new SimpleCard (
-                        type: card.type,
-                        name: card.name,
-                        color: card.color,
-                        rarity: card.rarity,
-                        energy: card.energy,
-                        description: card.description
-                ),
+                attributes: card,
                 links: null
         )
     }
@@ -112,26 +107,58 @@ class CardsResource extends Resource {
                       @QueryParam("energyMin") Optional<Integer> energyMin,
                       @QueryParam("energyMax") Optional<Integer> energyMax,
                       @QueryParam("keywords") List<String> keywords,
-                      @QueryParam("number") Integer number,
-                      @QueryParam("isRandom") Boolean isRandom) {
+                      @QueryParam("number") Optional<Integer> number,
+                      @QueryParam("isRandom") Optional<Boolean> isRandom) {
 
         Response response
 
+        List<String> validTypes = ["skill", "attack", "power", "status", "curse"]
+        List<String> validColors =["red", "green", "blue", "colorless"]
+        List<String> validRarities = ["basic", "common", "uncommon", "rare"]
+
         if(types.empty) {
-            types = ["skill", "attack", "power", "status", "curse"]
+            types = validTypes
+        } else {
+            for(int i = 0; i < types.size(); i++) {
+                if(!validTypes.contains(types[i])) {
+                    response = badRequest("Invalid types").build()
+                    return response
+                }
+            }
         }
-        if(keywords.empty) {
-            keywords = [""]
-        }
+
         if(colors.empty) {
-            colors = ["red", "green", "blue", "colorless"]
+            colors = validColors
+        } else {
+            for(int i = 0; i < colors.size(); i++) {
+                if(!validColors.contains(colors[i])) {
+                    response = badRequest("Invalid colors").build()
+                    return response
+                }
+            }
         }
+
         if(rarities.empty) {
-            rarities = ["basic", "common", "uncommon", "rare"]
+            rarities = validRarities
+        } else {
+            for(int i = 0; i < rarities.size(); i++) {
+                if(!validRarities.contains(rarities[i])) {
+                    response = badRequest("Invalid rarities").build()
+                    return response
+                }
+            }
+        }
+
+        for(int i = 0; i < keywords.size(); i++) {
+            if(!keywords[i].matches('[a-zA-Z0-9 ."]+')) {
+                response = badRequest("Invalid use of keywords").build()
+                return response
+            }
         }
 
         List<Card> cards = getCards(types, name.orNull(), colors, rarities,
-                energyMin.or(0), energyMax.or(999), keywords, number, isRandom)
+                energyMin.or(0), energyMax.or(999),
+                keywords, number.or(10), isRandom.or(true))
 
 //        List<Card> cards = cardDAO.getCards(types, name.orNull(), colors, rarities,
 //                energyMin.or(0), energyMax.or(999), keywords, number, randomInt)
