@@ -12,6 +12,7 @@ import edu.oregonstate.mist.api.jsonapi.ResultObject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.annotation.security.PermitAll
 import javax.ws.rs.GET
 import javax.ws.rs.Path
 import javax.ws.rs.PathParam
@@ -22,6 +23,7 @@ import javax.ws.rs.core.MediaType
 // This will get a Card object from CardDAO and send responses for different endpoints
 
 @Path('/cards')
+@PermitAll
 @Produces(MediaType.APPLICATION_JSON)
 class CardsResource extends Resource {
     Logger logger = LoggerFactory.getLogger(CardsResource.class)
@@ -36,14 +38,7 @@ class CardsResource extends Resource {
         new ResourceObject(
                 id: card.id,
                 type: 'card',
-                attributes: new Card (
-                        type: card.type,
-                        name: card.name,
-                        color: card.color,
-                        rarity: card.rarity,
-                        energy: card.energy,
-                        description: card.description
-                ),
+                attributes: card,
                 links: null
         )
     }
@@ -58,7 +53,7 @@ class CardsResource extends Resource {
     @GET
     @Path ('{id}')
     @Produces(MediaType.APPLICATION_JSON)
-    Response getCardById(@Auth AuthenticatedUser authenticatedUser, @PathParam('id') IntParam id) {
+    Response getCardById(@PathParam('id') IntParam id) {
 
         Card card = cardDAO.getCardById(id.get())
 
