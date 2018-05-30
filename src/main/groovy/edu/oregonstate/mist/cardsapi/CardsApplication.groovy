@@ -34,7 +34,7 @@ class CardsApplication extends Application<CardsConfiguration> {
                 configuration.getDataSourceFactory(),
                 "jdbi")
         final CardDAO DAO = JDBI.onDemand(CardDAO.class)
-        environment.jersey().register(new CardsResource(DAO))
+        environment.jersey().register(new CardsResource(DAO, JDBI))
     }
 
     /**

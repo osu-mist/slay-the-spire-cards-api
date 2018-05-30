@@ -6,47 +6,49 @@ import org.skife.jdbi.v2.sqlobject.Bind
 import org.skife.jdbi.v2.sqlobject.SqlQuery
 import org.skife.jdbi.v2.sqlobject.SqlUpdate
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper
+import org.skife.jdbi.v2.sqlobject.stringtemplate.UseStringTemplate3StatementLocator
+import org.skife.jdbi.v2.unstable.BindIn
 
 // This will query the database and return a Card object
 @RegisterMapper(CardsMapper)
+@UseStringTemplate3StatementLocator
 interface CardDAO extends Closeable {
-    // GET by parameters (work in progress)
+//    GET by parameters (replaced by method in CardsResource)
 //    @SqlQuery ("""
-//        SELECT
-//            CARDS.ID,
-//            CARDS.TYPE_ID,
-//            CARDS.NAME,
-//            CARDS.COLOR_ID,
-//            CARDS.RARITY_ID,
-//            CARDS.ENERGY,
-//            CARDS.DESCRIPTION,
 //
-//            CARD_TYPES.TYPE,
-//            CARD_COLORS.COLOR,
-//            CARD_RARITIES.RARITY
+//        SELECT *
 //
-//        FROM CARDS
+//        FROM (
+//            SELECT *
+//            FROM CARDS
 //
-//        INNER JOIN CARD_TYPES ON CARDS.TYPE_ID = CARD_TYPES.TYPE_ID
-//        INNER JOIN CARD_COLORS ON CARDS.COLOR_ID = CARD_COLORS.COLOR_ID
-//        INNER JOIN CARD_RARITIES ON CARDS.RARITY_ID = CARD_RARITIES.RARITY_ID
+//            LEFT JOIN CARD_TYPES ON CARDS.TYPE_ID = CARD_TYPES.TYPE_ID
+//            LEFT JOIN CARD_COLORS ON CARDS.COLOR_ID = CARD_COLORS.COLOR_ID
+//            LEFT JOIN CARD_RARITIES ON CARDS.RARITY_ID = CARD_RARITIES.RARITY_ID
+//
+//            ORDER BY DBMS_RANDOM.VALUE)
 //
 //        WHERE
-//            CARDS.TYPE LIKE
+//            NAME LIKE '%'||:name||'%'
+//            AND ENERGY >= :energyMin
+//            AND ENERGY \\<= :energyMax
+//            AND TYPE IN (<types>)
+//            AND COLOR IN (<colors>)
+//            AND RARITY IN (<rarities>)
 //
+//        FETCH FIRST :cardNumber ROWS ONLY
+//     """)
 //
-//    """)
-//    List<Card> getCards(@Bind("types") String[] types,
+//    List<Card> getCards(@BindIn("types") List<String> types,
 //                          @Bind("name") String name,
-//                          @Bind("colors") String[] colors,
-//                          @Bind("rarities") String [] rarities,
-//                          @Bind("energyMin") int energyMin,
-//                          @Bind("energyMax") int energyMax,
-//                          @Bind("keywords") String[] keywords,
-//                          @Bind("number") int number,
-//                          @Bind("isRandom") boolean isRandom)
-    
-    // GET card by id
+//                          @BindIn("colors") List<String> colors,
+//                          @BindIn("rarities") List<String> rarities,
+//                          @Bind("energyMin") Integer energyMin,
+//                          @Bind("energyMax") Integer energyMax,
+//                          @BindIn("keywords") List<String> keywords,
+//                          @Bind("cardNumber") Integer cardNumber,
+//                          @Bind("randomInt") Integer randomInt)
+
     @SqlQuery ("""
         SELECT
             CARDS.ID,
@@ -70,6 +72,29 @@ interface CardDAO extends Closeable {
         WHERE CARDS.ID = :id
     """)
     Card getCardById(@Bind("id") Integer id)
+
+    @SqlUpdate ("""
+        INSERT INTO CARDS (ID, TYPE_ID, NAME, COLOR_ID, RARITY_ID, ENERGY, DESCRIPTION)
+        VALUES (
+            (:id),
+            (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE = :type),
+            (:name),
+            (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR = :color),
+            (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY = :rarity),
+            (:energy),
+            (:description)
+        )
+        """)
+    void postCard(@Bind("id") Integer id,
+                  @Bind("type") String type,
+                  @Bind("name") String name,
+                  @Bind("color") String color,
+                  @Bind("rarity") String rarity,
+                  @Bind("energy") Integer energy,
+                  @Bind("description") String description)
+
+    @SqlQuery("SELECT CARD_INSTANCE_SEQ.NEXTVAL FROM DUAL")
+    Integer getNextId()
 
     @Override
     void close()
