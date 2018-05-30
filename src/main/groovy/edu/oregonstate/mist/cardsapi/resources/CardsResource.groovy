@@ -2,10 +2,7 @@ package edu.oregonstate.mist.cardsapi.resources
 
 import io.dropwizard.auth.Auth
 import io.dropwizard.jersey.params.IntParam
-import io.dropwizard.jersey.params.NonEmptyStringParam
-import io.dropwizard.jersey.params.BooleanParam
 import edu.oregonstate.mist.cardsapi.core.Card
-import edu.oregonstate.mist.cardsapi.core.SimpleCard
 import edu.oregonstate.mist.cardsapi.db.CardDAO
 import edu.oregonstate.mist.api.Resource
 import edu.oregonstate.mist.api.jsonapi.ResourceObject
@@ -13,10 +10,7 @@ import edu.oregonstate.mist.api.jsonapi.ResultObject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import javax.print.attribute.standard.Media
-import javax.validation.constraints.Pattern
 import javax.ws.rs.DELETE
-import javax.ws.rs.DefaultValue
 import javax.ws.rs.GET
 import javax.ws.rs.POST
 import javax.ws.rs.PUT
@@ -32,12 +26,7 @@ import com.google.common.base.Optional
 import org.skife.jdbi.v2.Handle
 import org.skife.jdbi.v2.Query
 import edu.oregonstate.mist.cardsapi.mapper.CardsMapper
-import org.skife.jdbi.v2.sqlobject.Bind
-import org.skife.jdbi.v2.sqlobject.SqlQuery
-import org.skife.jdbi.v2.sqlobject.SqlUpdate
-import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper
 import org.skife.jdbi.v2.sqlobject.stringtemplate.UseStringTemplate3StatementLocator
-import org.skife.jdbi.v2.unstable.BindIn
 import org.skife.jdbi.v2.DBI
 
 // This will get a Card object from CardDAO and send responses for different endpoints
@@ -113,7 +102,7 @@ class CardsResource extends Resource {
         Response response
 
         List<String> validTypes = ["skill", "attack", "power", "status", "curse"]
-        List<String> validColors =["red", "green", "blue", "colorless"]
+        List<String> validColors = ["red", "green", "blue", "colorless"]
         List<String> validRarities = ["basic", "common", "uncommon", "rare"]
 
         if(types.empty) {
@@ -149,8 +138,13 @@ class CardsResource extends Resource {
             }
         }
 
+        if(!(name.or("")).matches('[a-zA-Z0-9 ."+-]*')) {
+            response = badRequest("Invalid name").build()
+            return response
+        }
+
         for(int i = 0; i < keywords.size(); i++) {
-            if(!keywords[i].matches('[a-zA-Z0-9 ."]+')) {
+            if(!keywords[i].matches('[a-zA-Z0-9 ."+-]*')) {
                 response = badRequest("Invalid use of keywords").build()
                 return response
             }
@@ -159,9 +153,6 @@ class CardsResource extends Resource {
         List<Card> cards = getCards(types, name.orNull(), colors, rarities,
                 energyMin.or(0), energyMax.or(999),
                 keywords, number.or(10), isRandom.or(true))
-
-//        List<Card> cards = cardDAO.getCards(types, name.orNull(), colors, rarities,
-//                energyMin.or(0), energyMax.or(999), keywords, number, randomInt)
 
         ResultObject cardResult = cardsResult(cards)
         response = ok(cardResult).build()
@@ -180,9 +171,9 @@ class CardsResource extends Resource {
     String keywordsToSql (List<String> keywords) {
         String str = ""
         for(int i = 0; i < keywords.size(); i++) {
-            str += "AND DESCRIPTION LIKE '%'||"
+            str += "AND LOWER(DESCRIPTION) LIKE LOWER('%'||"
             str += "\'" + keywords[i] + "\'"
-            str += "||'%'"
+            str += "||'%')"
         }
         str
     }
@@ -219,7 +210,7 @@ class CardsResource extends Resource {
 
         WHERE """
         if(name) {
-            query += "NAME LIKE '%'||:name||'%'\nAND "
+            query += "LOWER(NAME) LIKE LOWER('%'||:name||'%')\nAND "
         }
         query += """ENERGY >= :energyMin
             AND ENERGY \\<= :energyMax
@@ -245,6 +236,7 @@ class CardsResource extends Resource {
             .map(new CardsMapper())
 
         List<Card> cards = q.list()
+        h.close()
         cards
     }
 }
