@@ -9,10 +9,13 @@ import edu.oregonstate.mist.cardsapi.db.CardFluent
 import edu.oregonstate.mist.api.Resource
 import edu.oregonstate.mist.api.jsonapi.ResourceObject
 import edu.oregonstate.mist.api.jsonapi.ResultObject
+import io.dropwizard.validation.Validated
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.ws.rs.Consumes
 import javax.ws.rs.DELETE
+import javax.ws.rs.POST
 import javax.annotation.security.PermitAll
 import javax.ws.rs.GET
 import javax.ws.rs.Path
@@ -153,5 +156,19 @@ class CardsResource extends Resource {
 
         ResultObject cardResult = cardsResult(cards)
         ok(cardResult).build()
+    }
+
+    boolean cardValidator(Card card) {
+        if(!(validTypes.contains(card.type)
+                && validColors.contains(card.color)
+                && validRarities.contains(card.rarity)
+                && card.name.matches('[a-zA-Z0-9 ."+-]*')
+                && card.description.matches('[a-zA-Z0-9 ."+-]*')
+                && card.energy >= 0
+                && card.energy <= 999)) {
+            false
+        } else {
+            true
+        }
     }
 }

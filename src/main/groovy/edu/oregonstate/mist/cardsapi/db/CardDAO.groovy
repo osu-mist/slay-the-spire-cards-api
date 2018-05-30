@@ -73,6 +73,29 @@ interface CardDAO extends Closeable {
     """)
     Card getCardById(@Bind("id") Integer id)
 
+    @SqlUpdate ("""
+        INSERT INTO CARDS (ID, TYPE_ID, NAME, COLOR_ID, RARITY_ID, ENERGY, DESCRIPTION)
+        VALUES (
+            (:id),
+            (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE = :type),
+            (:name),
+            (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR = :color),
+            (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY = :rarity),
+            (:energy),
+            (:description)
+        )
+        """)
+    void postCard(@Bind("id") Integer id,
+                  @Bind("type") String type,
+                  @Bind("name") String name,
+                  @Bind("color") String color,
+                  @Bind("rarity") String rarity,
+                  @Bind("energy") Integer energy,
+                  @Bind("description") String description)
+
+    @SqlQuery("SELECT CARD_INSTANCE_SEQ.NEXTVAL FROM DUAL")
+    Integer getNextId()
+
     @Override
     void close()
 }
