@@ -2,7 +2,9 @@ package edu.oregonstate.mist.cardsapi.resources
 
 import io.dropwizard.auth.Auth
 import io.dropwizard.jersey.params.IntParam
+import io.dropwizard.auth.Auth
 import edu.oregonstate.mist.cardsapi.core.Card
+import edu.oregonstate.mist.api.AuthenticatedUser
 import edu.oregonstate.mist.cardsapi.db.CardDAO
 import edu.oregonstate.mist.api.Resource
 import edu.oregonstate.mist.api.jsonapi.ResourceObject
@@ -11,9 +13,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import javax.ws.rs.DELETE
+import javax.annotation.security.PermitAll
 import javax.ws.rs.GET
-import javax.ws.rs.POST
-import javax.ws.rs.PUT
 import javax.ws.rs.Path
 import javax.ws.rs.PathParam
 import javax.ws.rs.Produces
@@ -29,9 +30,11 @@ import edu.oregonstate.mist.cardsapi.mapper.CardsMapper
 import org.skife.jdbi.v2.sqlobject.stringtemplate.UseStringTemplate3StatementLocator
 import org.skife.jdbi.v2.DBI
 
+
 // This will get a Card object from CardDAO and send responses for different endpoints
 
 @Path('/cards')
+@PermitAll
 @Produces(MediaType.APPLICATION_JSON)
 //@RegisterMapper(CardsMapper)
 @UseStringTemplate3StatementLocator
@@ -73,16 +76,15 @@ class CardsResource extends Resource {
     @Produces(MediaType.APPLICATION_JSON)
     Response getCardById(@Auth @PathParam('id') IntParam id) {
 
-        Response response
         Card card = cardDAO.getCardById(id.get())
 
-        if(card == null) {
-            response = notFound().build()
-        } else {
+        if(card) {
             ResultObject cardResult = cardsResult(card)
-            response = ok(cardResult).build()
+            ok(cardResult).build()
+        } else {
+            notFound().build()
         }
-        response
+
     }
 
     //Get cards by parameters
