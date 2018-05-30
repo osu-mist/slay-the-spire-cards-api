@@ -1,6 +1,5 @@
 package edu.oregonstate.mist.cardsapi.resources
 
-import io.dropwizard.auth.Auth
 import io.dropwizard.jersey.params.IntParam
 import io.dropwizard.auth.Auth
 import edu.oregonstate.mist.cardsapi.core.Card
@@ -27,7 +26,6 @@ import com.google.common.base.Optional
 import org.skife.jdbi.v2.Handle
 import org.skife.jdbi.v2.Query
 import edu.oregonstate.mist.cardsapi.mapper.CardsMapper
-import org.skife.jdbi.v2.sqlobject.stringtemplate.UseStringTemplate3StatementLocator
 import org.skife.jdbi.v2.DBI
 
 
@@ -36,8 +34,6 @@ import org.skife.jdbi.v2.DBI
 @Path('/cards')
 @PermitAll
 @Produces(MediaType.APPLICATION_JSON)
-//@RegisterMapper(CardsMapper)
-@UseStringTemplate3StatementLocator
 class CardsResource extends Resource {
     Logger logger = LoggerFactory.getLogger(CardsResource.class)
 
@@ -74,7 +70,7 @@ class CardsResource extends Resource {
     @GET
     @Path ('{id}')
     @Produces(MediaType.APPLICATION_JSON)
-    Response getCardById(@Auth @PathParam('id') IntParam id) {
+    Response getCardById(@PathParam('id') IntParam id) {
 
         Card card = cardDAO.getCardById(id.get())
 
@@ -161,6 +157,7 @@ class CardsResource extends Resource {
         response
     }
 
+    // Converts list of strings to comma-separated list in SQL
     String listToSql (List<String> list) {
         String str = "("
         for(int i = 0; i < list.size() - 1; i++) {
@@ -170,6 +167,7 @@ class CardsResource extends Resource {
         str
     }
 
+    // Builds list of LIKE statements for each string in keywords
     String keywordsToSql (List<String> keywords) {
         String str = ""
         for(int i = 0; i < keywords.size(); i++) {
@@ -226,6 +224,7 @@ class CardsResource extends Resource {
             query += keywordsToSql(keywords)
         }
         query += """FETCH FIRST :cardNumber ROWS ONLY"""
+
         Query<Map<String, Object>> q = h.createQuery(query)
             .bind("types", types)
             .bind("name", name)
