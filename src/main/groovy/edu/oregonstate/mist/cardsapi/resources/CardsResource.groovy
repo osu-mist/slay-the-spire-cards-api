@@ -10,6 +10,7 @@ import edu.oregonstate.mist.api.Resource
 import edu.oregonstate.mist.api.jsonapi.ResourceObject
 import edu.oregonstate.mist.api.jsonapi.ResultObject
 import io.dropwizard.validation.Validated
+import io.dropwizard.validation.ValidationMethod
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -18,6 +19,7 @@ import javax.ws.rs.DELETE
 import javax.ws.rs.POST
 import javax.annotation.security.PermitAll
 import javax.ws.rs.GET
+import javax.ws.rs.PUT
 import javax.ws.rs.Path
 import javax.ws.rs.PathParam
 import javax.ws.rs.Produces
@@ -164,31 +166,9 @@ class CardsResource extends Resource {
     @Produces(MediaType.APPLICATION_JSON)
     Response postCard (@Valid Card newCard) {
 
-        if(!validTypes.contains(newCard.type)) {
-            return badRequest("Invalid type. " +
-                    "Valid types are skill, attack, power, status, curse").build()
-        }
-        if(!validColors.contains(newCard.color)) {
-            return badRequest("Invalid color. " +
-                    "Valid colors are red, green, blue, colorless").build()
-        }
-        if(!validRarities.contains(newCard.rarity)) {
-            return badRequest("Invalid rarity. " +
-                    "Valid rarities are basic, common, uncommon, rare").build()
-        }
-        if(!newCard.name.matches(regEx)) {
-            return badRequest("Invalid name: \'" + newCard.name +
-                    "\'. Name must match pattern: " +
-                    regEx).build()
-        }
-        if(!newCard.description.matches(regEx)) {
-            return badRequest("Invalid description: \'" + newCard.description +
-                    "\'. Description must match pattern: " +
-                    regEx).build()
-        }
-        if(!(newCard.energy >= 0 && newCard.energy <= 999)) {
-            return badRequest("Invalid energy number. " +
-                    "Energy must be between 0 and 999").build()
+        Response response = cardValidator(newCard)
+        if(response) {
+            return response
         }
 
         Integer id = cardDAO.getNextId()
@@ -204,5 +184,59 @@ class CardsResource extends Resource {
         Card card = cardDAO.getCardById(id)
         ResultObject cardResult = cardsResult(card)
         created(cardResult).build()
+    }
+
+    @PUT
+    @Path('{id}')
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    Response putCard(@PathParam('id') IntParam id, @Valid Card updateCard) {
+
+        if(cardDAO.cardExists(id.get()) != 1) {
+            return notFound().build()
+        }
+        Response response = cardValidator(updateCard)
+        if(response) {
+            return response
+        }
+
+        cardDAO.putCard(id.get(), updateCard.type, updateCard.name,
+                updateCard.color, updateCard.rarity,
+                updateCard.energy, updateCard.description)
+        Card card  = cardDAO.getCardById(id.get())
+        ResultObject cardResult = cardsResult(card)
+        ok(cardResult).build()
+    }
+
+    // Returns 400 response with error message if any errors found.
+    // Otherwise, returns null
+    Response cardValidator(Card card) {
+        if(!validTypes.contains(card.type)) {
+            return badRequest("Invalid type. " +
+                    "Valid types are skill, attack, power, status, curse").build()
+        }
+        if(!validColors.contains(card.color)) {
+            return badRequest("Invalid color. " +
+                    "Valid colors are red, green, blue, colorless").build()
+        }
+        if(!validRarities.contains(card.rarity)) {
+            return badRequest("Invalid rarity. " +
+                    "Valid rarities are basic, common, uncommon, rare").build()
+        }
+        if(!card.name.matches(regEx)) {
+            return badRequest("Invalid name: \'" + card.name +
+                    "\'. Name must match pattern: " +
+                    regEx).build()
+        }
+        if(!card.description.matches(regEx)) {
+            return badRequest("Invalid description: \'" + card.description +
+                    "\'. Description must match pattern: " +
+                    regEx).build()
+        }
+        if(!(card.energy >= 0 && card.energy <= 999)) {
+            return badRequest("Invalid energy number. " +
+                    "Energy must be between 0 and 999").build()
+        }
+        null
     }
 }

@@ -96,6 +96,38 @@ interface CardDAO extends Closeable {
     @SqlQuery("SELECT CARD_INSTANCE_SEQ.NEXTVAL FROM DUAL")
     Integer getNextId()
 
+    @SqlUpdate ("""
+        UPDATE CARDS
+            SET TYPE_ID = (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE = :type),
+            NAME = :name,
+            COLOR_ID = (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR = :color),
+            RARITY_ID = (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY = :rarity),
+            ENERGY = :energy,
+            DESCRIPTION = :description
+        WHERE CARDS.ID = :id
+        
+    """)
+    void putCard(@Bind("id") Integer id,
+                 @Bind("type") String type,
+                 @Bind("name") String name,
+                 @Bind("color") String color,
+                 @Bind("rarity") String rarity,
+                 @Bind("energy") Integer energy,
+                 @Bind("description") String description)
+
+    // Check if card exists
+    @SqlQuery ("""
+        SELECT CASE
+            WHEN EXISTS (SELECT *
+                         FROM CARDS
+                         WHERE CARDS.ID = :id)
+            THEN 1
+            ELSE 0
+            END
+        FROM DUAL
+    """)
+    Integer cardExists(@Bind("id") Integer id)
+
     @Override
     void close()
 }
