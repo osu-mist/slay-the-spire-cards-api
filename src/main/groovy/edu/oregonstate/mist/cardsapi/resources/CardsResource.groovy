@@ -162,10 +162,33 @@ class CardsResource extends Resource {
     @Path('')
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    Response postCard (@Validated Card newCard) {
+    Response postCard (@Valid Card newCard) {
 
-        if(!cardValidator(newCard)) {
-            return badRequest("Invalid card object").build()
+        if(!validTypes.contains(newCard.type)) {
+            return badRequest("Invalid type. " +
+                    "Valid types are skill, attack, power, status, curse").build()
+        }
+        if(!validColors.contains(newCard.color)) {
+            return badRequest("Invalid color. " +
+                    "Valid colors are red, green, blue, colorless").build()
+        }
+        if(!validRarities.contains(newCard.rarity)) {
+            return badRequest("Invalid rarity. " +
+                    "Valid rarities are basic, common, uncommon, rare").build()
+        }
+        if(!newCard.name.matches(regEx)) {
+            return badRequest("Invalid name: \'" + newCard.name +
+                    "\'. Name must match pattern: " +
+                    regEx).build()
+        }
+        if(!newCard.description.matches(regEx)) {
+            return badRequest("Invalid description: \'" + newCard.description +
+                    "\'. Description must match pattern: " +
+                    regEx).build()
+        }
+        if(!(newCard.energy >= 0 && newCard.energy <= 999)) {
+            return badRequest("Invalid energy number. " +
+                    "Energy must be between 0 and 999").build()
         }
 
         Integer id = cardDAO.getNextId()
@@ -181,19 +204,5 @@ class CardsResource extends Resource {
         Card card = cardDAO.getCardById(id)
         ResultObject cardResult = cardsResult(card)
         created(cardResult).build()
-    }
-
-    boolean cardValidator(Card card) {
-        if(!(validTypes.contains(card.type)
-                && validColors.contains(card.color)
-                && validRarities.contains(card.rarity)
-                && card.name.matches('[a-zA-Z0-9 ."+-]*')
-                && card.description.matches('[a-zA-Z0-9 ."+-]*')
-                && card.energy >= 0
-                && card.energy <= 999)) {
-            false
-        } else {
-            true
-        }
     }
 }
