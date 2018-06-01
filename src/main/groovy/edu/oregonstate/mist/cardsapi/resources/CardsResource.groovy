@@ -7,8 +7,6 @@ import edu.oregonstate.mist.cardsapi.db.CardFluent
 import edu.oregonstate.mist.api.Resource
 import edu.oregonstate.mist.api.jsonapi.ResourceObject
 import edu.oregonstate.mist.api.jsonapi.ResultObject
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 import javax.ws.rs.DELETE
 import javax.annotation.security.PermitAll
