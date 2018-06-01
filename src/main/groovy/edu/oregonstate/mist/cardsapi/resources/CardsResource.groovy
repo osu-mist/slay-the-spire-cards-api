@@ -5,9 +5,11 @@ import io.dropwizard.auth.Auth
 import edu.oregonstate.mist.cardsapi.core.Card
 import edu.oregonstate.mist.api.AuthenticatedUser
 import edu.oregonstate.mist.cardsapi.db.CardDAO
+import edu.oregonstate.mist.cardsapi.db.CardFluent
 import edu.oregonstate.mist.api.Resource
 import edu.oregonstate.mist.api.jsonapi.ResourceObject
 import edu.oregonstate.mist.api.jsonapi.ResultObject
+//import org.checkerframework.checker.regex.qual.Regex
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -23,9 +25,6 @@ import javax.ws.rs.QueryParam
 import javax.validation.Valid
 import com.google.common.base.Optional
 
-import org.skife.jdbi.v2.Handle
-import org.skife.jdbi.v2.Query
-import edu.oregonstate.mist.cardsapi.mapper.CardsMapper
 import org.skife.jdbi.v2.DBI
 
 // This will get a Card object from CardDAO and send responses for different endpoints
@@ -38,6 +37,12 @@ class CardsResource extends Resource {
 
     private final CardDAO cardDAO
     private DBI dbi
+    CardFluent cardFluent = new CardFluent(dbi)
+
+    List<String> validTypes = ["skill", "attack", "power", "status", "curse"]
+    List<String> validColors = ["red", "green", "blue", "colorless"]
+    List<String> validRarities = ["basic", "common", "uncommon", "rare"]
+    String regEx = '[a-zA-Z0-9 ."+-]*'
 
     CardsResource(CardDAO cardDAO, DBI dbi) {
         this.cardDAO = cardDAO
@@ -96,147 +101,58 @@ class CardsResource extends Resource {
                       @QueryParam("number") Optional<Integer> number,
                       @QueryParam("isRandom") Optional<Boolean> isRandom) {
 
-        Response response
-
-        List<String> validTypes = ["skill", "attack", "power", "status", "curse"]
-        List<String> validColors = ["red", "green", "blue", "colorless"]
-        List<String> validRarities = ["basic", "common", "uncommon", "rare"]
-
-        if(types.empty) {
+        if(!types) {
             types = validTypes
         } else {
-            for(int i = 0; i < types.size(); i++) {
-                if(!validTypes.contains(types[i])) {
-                    response = badRequest("Invalid types").build()
-                    return response
-                }
+            List<String> invalidTypes = types - validTypes
+            if(invalidTypes) {
+                return badRequest("Invalid types: \'${invalidTypes.join("\', \'")}\'. " +
+                        "Valid types are: " +
+                        "skill, attack, power, status, curse").build()
             }
         }
 
-        if(colors.empty) {
+        if(!colors) {
             colors = validColors
         } else {
-            for(int i = 0; i < colors.size(); i++) {
-                if(!validColors.contains(colors[i])) {
-                    response = badRequest("Invalid colors").build()
-                    return response
-                }
+            List<String> invalidColors = colors - validColors
+            if(invalidColors) {
+                return badRequest("Invalid colors: \'${invalidColors.join("\', \'")}\'. " +
+                        "Valid colors are: " +
+                        "red, green, blue, colorless.").build()
             }
         }
 
-        if(rarities.empty) {
+        if(!rarities) {
             rarities = validRarities
         } else {
-            for(int i = 0; i < rarities.size(); i++) {
-                if(!validRarities.contains(rarities[i])) {
-                    response = badRequest("Invalid rarities").build()
-                    return response
-                }
+            List<String> invalidRarities = rarities - validRarities
+            if(invalidRarities) {
+                return badRequest("Invalid rarities: \'${invalidRarities.join("\', \'")}\'. " +
+                        "Valid rarities are: " +
+                        "basic, common, uncommon, rare").build()
             }
         }
 
-        if(!(name.or("")).matches('[a-zA-Z0-9 ."+-]*')) {
-            response = badRequest("Invalid name").build()
-            return response
+        if(!(name.or("")).matches(regEx)) {
+            return badRequest("Invalid name: \'" + name.get() +
+                    "\'. Name must match pattern: " +
+                    regEx).build()
         }
 
         for(int i = 0; i < keywords.size(); i++) {
-            if(!keywords[i].matches('[a-zA-Z0-9 ."+-]*')) {
-                response = badRequest("Invalid use of keywords").build()
-                return response
+            if(!keywords[i].matches(regEx)) {
+                return badRequest("Invalid keyword: \'" + keywords[i] +
+                        "\'. All keywords " +
+                        "must match pattern: " + regEx).build()
             }
         }
 
-        List<Card> cards = getCards(types, name.orNull(), colors, rarities,
+        List<Card> cards = cardFluent.getCards(types, name.orNull(), colors, rarities,
                 energyMin.or(0), energyMax.or(999),
                 keywords, number.or(10), isRandom.or(true))
 
         ResultObject cardResult = cardsResult(cards)
-        response = ok(cardResult).build()
-        response
-    }
-
-    // Converts list of strings to comma-separated list in SQL
-    String listToSql (List<String> list) {
-        String str = "("
-        for(int i = 0; i < list.size() - 1; i++) {
-            str += "\'" + list[i] + "\',"
-        }
-        str += "\'" + list[list.size() - 1] + "\')"
-        str
-    }
-
-    // Builds list of LIKE statements for each string in keywords
-    String keywordsToSql (List<String> keywords) {
-        String str = ""
-        for(int i = 0; i < keywords.size(); i++) {
-            str += "AND LOWER(DESCRIPTION) LIKE LOWER('%'||"
-            str += "\'" + keywords[i] + "\'"
-            str += "||'%')"
-        }
-        str
-    }
-
-    List<Card> getCards(List<String> types,
-                        String name,
-                        List<String> colors,
-                        List<String> rarities,
-                        Integer energyMin,
-                        Integer energyMax,
-                        List<String> keywords,
-                        Integer cardNumber,
-                        Boolean isRandom) {
-        Handle h = dbi.open()
-        String query = """
-        
-        SELECT *
-
-        FROM (
-            SELECT *
-            FROM CARDS
-            
-            LEFT JOIN CARD_TYPES ON CARDS.TYPE_ID = CARD_TYPES.TYPE_ID
-            LEFT JOIN CARD_COLORS ON CARDS.COLOR_ID = CARD_COLORS.COLOR_ID
-            LEFT JOIN CARD_RARITIES ON CARDS.RARITY_ID = CARD_RARITIES.RARITY_ID
-            
-            ORDER BY """
-        if (isRandom) {
-            query += "DBMS_RANDOM.VALUE"
-        } else {
-            query += "ID ASC"
-        }
-        query += """)
-
-        WHERE """
-        if(name) {
-            query += "LOWER(NAME) LIKE LOWER('%'||:name||'%')\nAND "
-        }
-        query += """ENERGY >= :energyMin
-            AND ENERGY \\<= :energyMax
-            AND TYPE IN """
-        query += listToSql(types)
-        query += """AND COLOR IN """
-        query += listToSql(colors)
-        query += """AND RARITY IN """
-        query += listToSql(rarities)
-        if(keywords) {
-            query += keywordsToSql(keywords)
-        }
-        query += """FETCH FIRST :cardNumber ROWS ONLY"""
-
-        Query<Map<String, Object>> q = h.createQuery(query)
-            .bind("types", types)
-            .bind("name", name)
-            .bind("colors", colors)
-            .bind("rarities", rarities)
-            .bind("energyMin", energyMin)
-            .bind("energyMax", energyMax)
-            .bind("keywords", keywords)
-            .bind("cardNumber", cardNumber)
-            .map(new CardsMapper())
-
-        List<Card> cards = q.list()
-        h.close()
-        cards
+        ok(cardResult).build()
     }
 }
