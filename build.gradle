@@ -46,7 +46,6 @@ dependencies {
     compile "de.thomaskrille:dropwizard-template-config:1.4.0"
     compile "io.dropwizard:dropwizard-jdbi:${dropwizardVersion}"
     compile ':ojdbc6:'
-    compile 'org.antlr:stringtemplate:3.2.1'
 }
 
 codenarc {

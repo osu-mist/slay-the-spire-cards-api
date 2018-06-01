@@ -1,9 +1,7 @@
 package edu.oregonstate.mist.cardsapi.resources
 
 import io.dropwizard.jersey.params.IntParam
-import io.dropwizard.auth.Auth
 import edu.oregonstate.mist.cardsapi.core.Card
-import edu.oregonstate.mist.api.AuthenticatedUser
 import edu.oregonstate.mist.cardsapi.db.CardDAO
 import edu.oregonstate.mist.cardsapi.db.CardFluent
 import edu.oregonstate.mist.api.Resource
@@ -32,7 +30,6 @@ import org.skife.jdbi.v2.DBI
 @PermitAll
 @Produces(MediaType.APPLICATION_JSON)
 class CardsResource extends Resource {
-    Logger logger = LoggerFactory.getLogger(CardsResource.class)
 
     private final CardDAO cardDAO
     private DBI dbi
