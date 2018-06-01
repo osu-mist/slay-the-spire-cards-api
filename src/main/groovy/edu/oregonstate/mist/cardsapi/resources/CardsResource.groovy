@@ -13,6 +13,7 @@ import javax.ws.rs.DELETE
 import javax.ws.rs.POST
 import javax.annotation.security.PermitAll
 import javax.ws.rs.GET
+import javax.ws.rs.PUT
 import javax.ws.rs.Path
 import javax.ws.rs.PathParam
 import javax.ws.rs.Produces
@@ -178,6 +179,30 @@ class CardsResource extends Resource {
         created(cardResult).build()
     }
 
+    @PUT
+    @Path('{id}')
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    Response putCard(@PathParam('id') IntParam id, @Valid Card updateCard) {
+
+        if(cardDAO.cardExists(id.get()) != 1) {
+            return notFound().build()
+        }
+        Response response = cardValidator(updateCard)
+        if(response) {
+            return response
+        }
+
+        cardDAO.putCard(id.get(), updateCard.type, updateCard.name,
+                updateCard.color, updateCard.rarity,
+                updateCard.energy, updateCard.description)
+        Card card  = cardDAO.getCardById(id.get())
+        ResultObject cardResult = cardsResult(card)
+        ok(cardResult).build()
+    }
+
+    // Returns 400 response with error message if any errors found.
+    // Otherwise, returns null
     Response cardValidator(Card card) {
         if(!validTypes.contains(card.type)) {
             return badRequest("Invalid type. " +
