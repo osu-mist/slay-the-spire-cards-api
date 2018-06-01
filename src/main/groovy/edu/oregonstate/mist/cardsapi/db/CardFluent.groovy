@@ -5,7 +5,6 @@ import edu.oregonstate.mist.cardsapi.mapper.CardsMapper
 import org.skife.jdbi.v2.DBI
 import org.skife.jdbi.v2.Query
 import org.skife.jdbi.v2.Handle
-import edu.oregonstate.mist.cardsapi.mapper.CardsMapper
 
 class CardFluent {
 
