@@ -128,6 +128,12 @@ interface CardDAO extends Closeable {
     """)
     Integer cardExists(@Bind("id") Integer id)
 
+    @SqlUpdate ("""
+        DELETE FROM CARDS
+        WHERE CARDS.ID = :id
+    """)
+    void deleteCard(@Bind("id") Integer id)
+
     @Override
     void close()
 }
