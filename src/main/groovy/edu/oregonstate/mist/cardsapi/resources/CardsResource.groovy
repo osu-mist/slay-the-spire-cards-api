@@ -164,31 +164,9 @@ class CardsResource extends Resource {
     @Produces(MediaType.APPLICATION_JSON)
     Response postCard (@Valid Card newCard) {
 
-        if(!validTypes.contains(newCard.type)) {
-            return badRequest("Invalid type. " +
-                    "Valid types are skill, attack, power, status, curse").build()
-        }
-        if(!validColors.contains(newCard.color)) {
-            return badRequest("Invalid color. " +
-                    "Valid colors are red, green, blue, colorless").build()
-        }
-        if(!validRarities.contains(newCard.rarity)) {
-            return badRequest("Invalid rarity. " +
-                    "Valid rarities are basic, common, uncommon, rare").build()
-        }
-        if(!newCard.name.matches(regEx)) {
-            return badRequest("Invalid name: \'" + newCard.name +
-                    "\'. Name must match pattern: " +
-                    regEx).build()
-        }
-        if(!newCard.description.matches(regEx)) {
-            return badRequest("Invalid description: \'" + newCard.description +
-                    "\'. Description must match pattern: " +
-                    regEx).build()
-        }
-        if(!(newCard.energy >= 0 && newCard.energy <= 999)) {
-            return badRequest("Invalid energy number. " +
-                    "Energy must be between 0 and 999").build()
+        Response response = cardValidator(newCard)
+        if(response) {
+            return response
         }
 
         Integer id = cardDAO.getNextId()
@@ -204,5 +182,35 @@ class CardsResource extends Resource {
         Card card = cardDAO.getCardById(id)
         ResultObject cardResult = cardsResult(card)
         created(cardResult).build()
+    }
+
+    Response cardValidator(Card card) {
+        if(!validTypes.contains(card.type)) {
+            return badRequest("Invalid type. " +
+                    "Valid types are skill, attack, power, status, curse").build()
+        }
+        if(!validColors.contains(card.color)) {
+            return badRequest("Invalid color. " +
+                    "Valid colors are red, green, blue, colorless").build()
+        }
+        if(!validRarities.contains(card.rarity)) {
+            return badRequest("Invalid rarity. " +
+                    "Valid rarities are basic, common, uncommon, rare").build()
+        }
+        if(!card.name.matches(regEx)) {
+            return badRequest("Invalid name: \'" + card.name +
+                    "\'. Name must match pattern: " +
+                    regEx).build()
+        }
+        if(!card.description.matches(regEx)) {
+            return badRequest("Invalid description: \'" + card.description +
+                    "\'. Description must match pattern: " +
+                    regEx).build()
+        }
+        if(!(card.energy >= 0 && card.energy <= 999)) {
+            return badRequest("Invalid energy number. " +
+                    "Energy must be between 0 and 999").build()
+        }
+        null
     }
 }
