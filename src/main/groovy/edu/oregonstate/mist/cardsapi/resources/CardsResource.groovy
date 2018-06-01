@@ -201,6 +201,18 @@ class CardsResource extends Resource {
         ok(cardResult).build()
     }
 
+    @DELETE
+    @Path('{id}')
+    Response deleteCard(@PathParam('id') IntParam id) {
+
+        if(cardDAO.cardExists(id.get()) != 1) {
+            return notFound().build()
+        }
+
+        cardDAO.deleteCard(id.get())
+        Response.status(204).build()
+    }
+
     // Returns 400 response with error message if any errors found.
     // Otherwise, returns null
     Response cardValidator(Card card) {
