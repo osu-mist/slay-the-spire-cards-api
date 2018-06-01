@@ -14,27 +14,16 @@ import javax.validation.constraints.NotNull
 class Card {
     @JsonIgnore
     Integer id
-
-//    @OneOf(value = ["skill", "attack", "power", "status", "curse"])
     @NotEmpty
     String type
-
     @NotEmpty
     String name
-
-//    @OneOf(value = ["red", "green", "blue", "colorless"])
     @NotEmpty
     String color
-
-//    @OneOf(value = ["basic", "common", "uncommon", "rare"])
     @NotEmpty
     String rarity
-
-//    @Max(999)
-//    @Min(0)
     @NotNull
     Integer energy
-
     @NotEmpty
     String description
 }
