@@ -210,7 +210,7 @@ class CardsResource extends Resource {
         }
 
         cardDAO.deleteCard(id.get())
-        Response.status(204).build()
+        Response.status(Response.Status.NO_CONTENT).build()
     }
 
     // Returns 400 response with error message if any errors found.
