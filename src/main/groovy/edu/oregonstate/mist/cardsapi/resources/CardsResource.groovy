@@ -34,17 +34,20 @@ class CardsResource extends Resource {
 
     private final CardDAO cardDAO
     private DBI dbi
+    private CardFluent cardFluent
     private List<String> validTypes
     private List<String> validColors
     private List<String> validRarities
-    CardFluent cardFluent = new CardFluent(dbi)
 
-    String regEx = '[a-zA-Z0-9 ."+-]*'
+    // Regular expression for allowed name or description of card
+    String validPattern = '[a-zA-Z0-9 ."+-]*'
 
-    CardsResource(CardDAO cardDAO, DBI dbi, List<String> validTypes,
-                  List<String> validColors, List<String> validRarities) {
+    CardsResource(CardDAO cardDAO, DBI dbi, CardFluent cardFluent,
+                  List<String> validTypes, List<String> validColors,
+                  List<String> validRarities) {
         this.cardDAO = cardDAO
         this.dbi = dbi
+        this.cardFluent = cardFluent
         this.validTypes = validTypes
         this.validColors = validColors
         this.validRarities = validRarities
@@ -74,7 +77,6 @@ class CardsResource extends Resource {
     // Get card by id
     @GET
     @Path ('{id}')
-    @Produces(MediaType.APPLICATION_JSON)
     Response getCardById(@PathParam('id') IntParam id) {
 
         Card card = cardDAO.getCardById(id.get())
@@ -90,8 +92,6 @@ class CardsResource extends Resource {
 
     //Get cards by parameters
     @GET
-    @Path ('')
-    @Produces(MediaType.APPLICATION_JSON)
     Response getCards(@QueryParam("types") List<String> types,
                       @QueryParam("name") Optional<String> name,
                       @QueryParam("colors") List<String> colors,
@@ -108,8 +108,7 @@ class CardsResource extends Resource {
             List<String> invalidTypes = types - validTypes
             if(invalidTypes) {
                 return badRequest("Invalid types: \'${invalidTypes.join("\', \'")}\'. " +
-                        "Valid types are: " +
-                        "skill, attack, power, status, curse").build()
+                        "Valid types are: " + validTypes.join(", ")).build()
             }
         }
 
@@ -119,8 +118,7 @@ class CardsResource extends Resource {
             List<String> invalidColors = colors - validColors
             if(invalidColors) {
                 return badRequest("Invalid colors: \'${invalidColors.join("\', \'")}\'. " +
-                        "Valid colors are: " +
-                        "red, green, blue, colorless.").build()
+                        "Valid colors are: " + validColors.join(", ")).build()
             }
         }
 
@@ -130,23 +128,21 @@ class CardsResource extends Resource {
             List<String> invalidRarities = rarities - validRarities
             if(invalidRarities) {
                 return badRequest("Invalid rarities: \'${invalidRarities.join("\', \'")}\'. " +
-                        "Valid rarities are: " +
-                        "basic, common, uncommon, rare").build()
+                        "Valid rarities are: " + validRarities.join(", ")).build()
             }
         }
 
-        if(!(name.or("")).matches(regEx)) {
+        if(!(name.or("")).matches(validPattern)) {
             return badRequest("Invalid name: \'" + name.get() +
                     "\'. Name must match pattern: " +
-                    regEx).build()
+                    validPattern).build()
         }
 
-        for(int i = 0; i < keywords.size(); i++) {
-            if(!keywords[i].matches(regEx)) {
-                return badRequest("Invalid keyword: \'" + keywords[i] +
-                        "\'. All keywords " +
-                        "must match pattern: " + regEx).build()
-            }
+        List<String> invalidKeywords = keywords.findAll {!it.matches(validPattern)}
+        if(invalidKeywords) {
+            return badRequest("Invalid keywords: \'${invalidKeywords.join("\', \'")}\'. " +
+                    "All keywords " +
+                    "must match pattern: " + validPattern).build()
         }
 
         List<Card> cards = cardFluent.getCards(types, name.orNull(), colors, rarities,
@@ -158,9 +154,7 @@ class CardsResource extends Resource {
     }
 
     @POST
-    @Path('')
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
     Response postCard (@Valid Card newCard) {
 
         Response response = cardValidator(newCard)
@@ -186,7 +180,6 @@ class CardsResource extends Resource {
     @PUT
     @Path('{id}')
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
     Response putCard(@PathParam('id') IntParam id, @Valid Card updateCard) {
 
         if(!cardDAO.cardExists(id.get())) {
