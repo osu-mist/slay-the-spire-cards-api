@@ -34,16 +34,20 @@ class CardsResource extends Resource {
 
     private final CardDAO cardDAO
     private DBI dbi
+    private List<String> validTypes
+    private List<String> validColors
+    private List<String> validRarities
     CardFluent cardFluent = new CardFluent(dbi)
 
-    List<String> validTypes = ["skill", "attack", "power", "status", "curse"]
-    List<String> validColors = ["red", "green", "blue", "colorless"]
-    List<String> validRarities = ["basic", "common", "uncommon", "rare"]
     String regEx = '[a-zA-Z0-9 ."+-]*'
 
-    CardsResource(CardDAO cardDAO, DBI dbi) {
+    CardsResource(CardDAO cardDAO, DBI dbi, List<String> validTypes,
+                  List<String> validColors, List<String> validRarities) {
         this.cardDAO = cardDAO
         this.dbi = dbi
+        this.validTypes = validTypes
+        this.validColors = validColors
+        this.validRarities = validRarities
     }
 
     ResourceObject cardsResource(Card card) {
@@ -185,12 +189,12 @@ class CardsResource extends Resource {
     @Produces(MediaType.APPLICATION_JSON)
     Response putCard(@PathParam('id') IntParam id, @Valid Card updateCard) {
 
-        if(cardDAO.cardExists(id.get()) != 1) {
+        if(!cardDAO.cardExists(id.get())) {
             return notFound().build()
         }
-        Response response = cardValidator(updateCard)
-        if(response) {
-            return response
+        Response badResponse = cardValidator(updateCard)
+        if(badResponse) {
+            return badResponse
         }
 
         cardDAO.putCard(id.get(), updateCard.type, updateCard.name,
