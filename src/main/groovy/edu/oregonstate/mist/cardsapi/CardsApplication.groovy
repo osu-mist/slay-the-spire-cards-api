@@ -2,6 +2,7 @@ package edu.oregonstate.mist.cardsapi
 
 import edu.oregonstate.mist.api.Application
 import edu.oregonstate.mist.cardsapi.db.CardDAO
+import edu.oregonstate.mist.cardsapi.db.CardFluent
 import edu.oregonstate.mist.cardsapi.resources.CardsResource
 import io.dropwizard.jdbi.DBIFactory
 import io.dropwizard.setup.Environment
@@ -34,7 +35,8 @@ class CardsApplication extends Application<CardsConfiguration> {
                 configuration.getDataSourceFactory(),
                 "jdbi")
         final CardDAO DAO = JDBI.onDemand(CardDAO.class)
-        environment.jersey().register(new CardsResource(DAO, JDBI))
+        final CardFluent FLUENT = new CardFluent(JDBI)
+        environment.jersey().register(new CardsResource(DAO, JDBI, FLUENT))
     }
 
     /**
