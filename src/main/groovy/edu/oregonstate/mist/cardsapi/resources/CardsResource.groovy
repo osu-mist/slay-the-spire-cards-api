@@ -1,17 +1,14 @@
 package edu.oregonstate.mist.cardsapi.resources
 
 import io.dropwizard.jersey.params.IntParam
-import io.dropwizard.auth.Auth
 import edu.oregonstate.mist.cardsapi.core.Card
-import edu.oregonstate.mist.api.AuthenticatedUser
-
 import edu.oregonstate.mist.cardsapi.db.CardDAO
+import edu.oregonstate.mist.cardsapi.db.CardFluent
 import edu.oregonstate.mist.api.Resource
 import edu.oregonstate.mist.api.jsonapi.ResourceObject
 import edu.oregonstate.mist.api.jsonapi.ResultObject
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
+import javax.ws.rs.DELETE
 import javax.annotation.security.PermitAll
 import javax.ws.rs.GET
 import javax.ws.rs.Path
@@ -19,6 +16,11 @@ import javax.ws.rs.PathParam
 import javax.ws.rs.Produces
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.MediaType
+import javax.ws.rs.QueryParam
+import javax.validation.Valid
+import com.google.common.base.Optional
+
+import org.skife.jdbi.v2.DBI
 
 // This will get a Card object from CardDAO and send responses for different endpoints
 
@@ -26,12 +28,22 @@ import javax.ws.rs.core.MediaType
 @PermitAll
 @Produces(MediaType.APPLICATION_JSON)
 class CardsResource extends Resource {
-    Logger logger = LoggerFactory.getLogger(CardsResource.class)
 
     private final CardDAO cardDAO
+    private DBI dbi
+    private CardFluent cardFluent
 
-    CardsResource(CardDAO cardDAO) {
+    List<String> validTypes = ["skill", "attack", "power", "status", "curse"]
+    List<String> validColors = ["red", "green", "blue", "colorless"]
+    List<String> validRarities = ["basic", "common", "uncommon", "rare"]
+
+    // Regular expression for allowed name or description of card
+    String validPattern = '[a-zA-Z0-9 ."+-]*'
+
+    CardsResource(CardDAO cardDAO, DBI dbi, CardFluent cardFluent) {
         this.cardDAO = cardDAO
+        this.dbi = dbi
+        this.cardFluent = cardFluent
     }
 
     ResourceObject cardsResource(Card card) {
@@ -49,10 +61,15 @@ class CardsResource extends Resource {
         )
     }
 
+    ResultObject cardsResult(List<Card> cards) {
+        new ResultObject(
+                data: cards.collect {singleCard -> cardsResource(singleCard)}
+        )
+    }
+
     // Get card by id
     @GET
     @Path ('{id}')
-    @Produces(MediaType.APPLICATION_JSON)
     Response getCardById(@PathParam('id') IntParam id) {
 
         Card card = cardDAO.getCardById(id.get())
@@ -64,5 +81,68 @@ class CardsResource extends Resource {
             notFound().build()
         }
 
+    }
+
+    //Get cards by parameters
+    @GET
+    Response getCards(@QueryParam("types") List<String> types,
+                      @QueryParam("name") Optional<String> name,
+                      @QueryParam("colors") List<String> colors,
+                      @QueryParam("rarities") List<String> rarities,
+                      @QueryParam("energyMin") Optional<Integer> energyMin,
+                      @QueryParam("energyMax") Optional<Integer> energyMax,
+                      @QueryParam("keywords") List<String> keywords,
+                      @QueryParam("number") Optional<Integer> number,
+                      @QueryParam("isRandom") Optional<Boolean> isRandom) {
+
+        if(!types) {
+            types = validTypes
+        } else {
+            List<String> invalidTypes = types - validTypes
+            if(invalidTypes) {
+                return badRequest("Invalid types: \'${invalidTypes.join("\', \'")}\'. " +
+                        "Valid types are: " + validTypes.join(", ")).build()
+            }
+        }
+
+        if(!colors) {
+            colors = validColors
+        } else {
+            List<String> invalidColors = colors - validColors
+            if(invalidColors) {
+                return badRequest("Invalid colors: \'${invalidColors.join("\', \'")}\'. " +
+                        "Valid colors are: " + validColors.join(", ")).build()
+            }
+        }
+
+        if(!rarities) {
+            rarities = validRarities
+        } else {
+            List<String> invalidRarities = rarities - validRarities
+            if(invalidRarities) {
+                return badRequest("Invalid rarities: \'${invalidRarities.join("\', \'")}\'. " +
+                        "Valid rarities are: " + validRarities.join(", ")).build()
+            }
+        }
+
+        if(!(name.or("")).matches(validPattern)) {
+            return badRequest("Invalid name: \'" + name.get() +
+                    "\'. Name must match pattern: " +
+                    validPattern).build()
+        }
+
+        List<String> invalidKeywords = keywords.findAll {!it.matches(validPattern)}
+        if(invalidKeywords) {
+            return badRequest("Invalid keywords: \'${invalidKeywords.join("\', \'")}\'. " +
+                    "All keywords " +
+                    "must match pattern: " + validPattern).build()
+        }
+
+        List<Card> cards = cardFluent.getCards(types, name.orNull(), colors, rarities,
+                energyMin.or(0), energyMax.or(999),
+                keywords, number.or(10), isRandom.or(true))
+
+        ResultObject cardResult = cardsResult(cards)
+        ok(cardResult).build()
     }
 }
