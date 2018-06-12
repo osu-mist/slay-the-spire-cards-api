@@ -168,7 +168,7 @@ class CardsResource extends Resource {
     }
 
     Response resultObjectValidator(ResultObject resultObject) {
-        if(!resultObject.data.attributes) {
+        if(!(resultObject && resultObject.data.attributes)) {
             return badRequest("Invalid syntax: Object must contain data.attributes field").build()
         }
         if(!validTypes.contains(resultObject.data.attributes.type)) {
@@ -183,15 +183,15 @@ class CardsResource extends Resource {
             return badRequest("Invalid rarity. " +
                     "Valid rarities are basic, common, uncommon, rare").build()
         }
-        if(!resultObject.data.attributes.name.matches(regEx)) {
+        if(!resultObject.data.attributes.name.matches(validPattern)) {
             return badRequest("Invalid name: \'" + resultObject.data.attributes.name +
                     "\'. Name must match pattern: " +
-                    regEx).build()
+                    validPattern).build()
         }
-        if(!resultObject.data.attributes.description.matches(regEx)) {
+        if(!resultObject.data.attributes.description.matches(validPattern)) {
             return badRequest("Invalid description: \'" + resultObject.data.attributes.description +
                     "\'. Description must match pattern: " +
-                    regEx).build()
+                    validPattern).build()
         }
         if(!(resultObject.data.attributes.energy >= energyMin
                 && resultObject.data.attributes.energy <= energyMax)) {
