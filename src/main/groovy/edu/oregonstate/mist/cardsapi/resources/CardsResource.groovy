@@ -154,11 +154,10 @@ class CardsResource extends Resource {
     @Consumes(MediaType.APPLICATION_JSON)
     Response postCard (@Valid ResultObject newResultObject) {
 
-        Response response = resultObjectValidator(newResultObject)
-        if(response) {
-            return response
+        Response badResponse = resultObjectValidator(newResultObject)
+        if(badResponse) {
+            return badResponse
         }
-
         Integer id = cardDAO.getNextId()
         cardDAO.postCard(id, (Card)newResultObject.data.attributes)
 
@@ -171,21 +170,34 @@ class CardsResource extends Resource {
         if(!(resultObject && resultObject.data.attributes)) {
             return badRequest("Invalid syntax: Object must contain data.attributes field").build()
         }
-        if(!validTypes.contains(resultObject.data.attributes.type)) {
+        if(!resultObject.data.attributes.type instanceof String ||
+                !validTypes.contains(resultObject.data.attributes.type)) {
             return badRequest("Invalid type. " +
                     "Valid types are skill, attack, power, status, curse").build()
         }
-        if(!validColors.contains(resultObject.data.attributes.color)) {
+        if(!resultObject.data.attributes.color instanceof String ||
+                !validColors.contains(resultObject.data.attributes.color)) {
             return badRequest("Invalid color. " +
                     "Valid colors are red, green, blue, colorless").build()
         }
-        if(!validRarities.contains(resultObject.data.attributes.rarity)) {
+        if(!resultObject.data.attributes.rarity instanceof String ||
+                !validRarities.contains(resultObject.data.attributes.rarity)) {
             return badRequest("Invalid rarity. " +
                     "Valid rarities are basic, common, uncommon, rare").build()
+        }
+        if(!(resultObject.data.attributes.name instanceof String)) {
+            return badRequest("Invalid name. " +
+                    "Name must match pattern: " +
+                    validPattern).build()
         }
         if(!resultObject.data.attributes.name.matches(validPattern)) {
             return badRequest("Invalid name: \'" + resultObject.data.attributes.name +
                     "\'. Name must match pattern: " +
+                    validPattern).build()
+        }
+        if(!(resultObject.data.attributes.description instanceof String)) {
+            return badRequest("Invalid description. " +
+                    "Description must match pattern: " +
                     validPattern).build()
         }
         if(!resultObject.data.attributes.description.matches(validPattern)) {
@@ -193,7 +205,8 @@ class CardsResource extends Resource {
                     "\'. Description must match pattern: " +
                     validPattern).build()
         }
-        if(!(resultObject.data.attributes.energy >= energyMin
+        if(!(resultObject.data.attributes.energy instanceof Integer
+                && resultObject.data.attributes.energy >= energyMin
                 && resultObject.data.attributes.energy <= energyMax)) {
             return badRequest("Invalid energy number. " +
                     "Energy must be between ${energyMin} and ${energyMax}").build()
