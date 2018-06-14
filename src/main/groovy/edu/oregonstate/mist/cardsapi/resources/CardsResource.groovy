@@ -171,28 +171,20 @@ class CardsResource extends Resource {
         created(cardResult).build()
     }
 
-    Response resultObjectValidator(ResultObject resultObject) {
-        if(!(resultObject && resultObject.data.attributes)) {
-            return badRequest("Invalid syntax: Object must contain data.attributes field").build()
-        }
-        if(!resultObject.data.attributes.type instanceof String ||
-                !validTypes.contains(resultObject.data.attributes.type)) {
     @PUT
     @Path('{id}')
     @Consumes(MediaType.APPLICATION_JSON)
-    Response putCard(@PathParam('id') IntParam id, @Valid Card updateCard) {
+    Response putCard(@PathParam('id') IntParam id, @Valid ResultObject newResultObject) {
 
         if(!cardDAO.cardExists(id.get())) {
             return notFound().build()
         }
-        Response badResponse = cardValidator(updateCard)
+        Response badResponse = resultObjectValidator(newResultObject)
         if(badResponse) {
             return badResponse
         }
+        cardDAO.putCard(id.get(), (Card)newResultObject.data.attributes)
 
-        cardDAO.putCard(id.get(), updateCard.type, updateCard.name,
-                updateCard.color, updateCard.rarity,
-                updateCard.energy, updateCard.description)
         Card card  = cardDAO.getCardById(id.get())
         ResultObject cardResult = cardsResult(card)
         ok(cardResult).build()
@@ -200,8 +192,12 @@ class CardsResource extends Resource {
 
     // Returns 400 response with error message if any errors found.
     // Otherwise, returns null
-    Response cardValidator(Card card) {
-        if(!validTypes.contains(card.type)) {
+    Response resultObjectValidator(ResultObject resultObject) {
+        if(!(resultObject && resultObject.data.attributes)) {
+            return badRequest("Invalid syntax: Object must contain data.attributes field").build()
+        }
+        if(!resultObject.data.attributes.type instanceof String ||
+                !validTypes.contains(resultObject.data.attributes.type)) {
             return badRequest("Invalid type. " +
                     "Valid types are skill, attack, power, status, curse").build()
         }
