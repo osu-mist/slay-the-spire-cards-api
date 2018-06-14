@@ -4,6 +4,7 @@ import edu.oregonstate.mist.cardsapi.core.Card
 import edu.oregonstate.mist.cardsapi.mapper.CardsMapper
 import edu.oregonstate.mist.cardsapi.mapper.ListsMapper
 import org.skife.jdbi.v2.sqlobject.Bind
+import org.skife.jdbi.v2.sqlobject.BindBean
 import org.skife.jdbi.v2.sqlobject.SqlQuery
 import org.skife.jdbi.v2.sqlobject.SqlUpdate
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper
@@ -40,21 +41,16 @@ interface CardDAO extends Closeable {
         INSERT INTO CARDS (ID, TYPE_ID, NAME, COLOR_ID, RARITY_ID, ENERGY, DESCRIPTION)
         VALUES (
             (:id),
-            (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE = :type),
-            (:name),
-            (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR = :color),
-            (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY = :rarity),
-            (:energy),
-            (:description)
+            (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE = :c.type),
+            (:c.name),
+            (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR = :c.color),
+            (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY = :c.rarity),
+            (:c.energy),
+            (:c.description)
         )
         """)
     void postCard(@Bind("id") Integer id,
-                  @Bind("type") String type,
-                  @Bind("name") String name,
-                  @Bind("color") String color,
-                  @Bind("rarity") String rarity,
-                  @Bind("energy") Integer energy,
-                  @Bind("description") String description)
+                  @BindBean("c") Card card)
 
     @SqlQuery("SELECT CARD_INSTANCE_SEQ.NEXTVAL FROM DUAL")
     Integer getNextId()

@@ -38,6 +38,8 @@ class CardsResource extends Resource {
     private List<String> validTypes
     private List<String> validColors
     private List<String> validRarities
+    Integer energyMin = 0
+    Integer energyMax = 999
 
     // Regular expression for allowed name or description of card
     String validPattern = '[a-zA-Z0-9 ."+-]*'
@@ -155,28 +157,26 @@ class CardsResource extends Resource {
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    Response postCard (@Valid Card newCard) {
+    Response postCard (@Valid ResultObject newResultObject) {
 
-        Response response = cardValidator(newCard)
-        if(response) {
-            return response
+        Response badResponse = resultObjectValidator(newResultObject)
+        if(badResponse) {
+            return badResponse
         }
-
         Integer id = cardDAO.getNextId()
-        cardDAO.postCard(
-                id,
-                newCard.type,
-                newCard.name,
-                newCard.color,
-                newCard.rarity,
-                newCard.energy,
-                newCard.description)
+        cardDAO.postCard(id, (Card)newResultObject.data.attributes)
 
         Card card = cardDAO.getCardById(id)
         ResultObject cardResult = cardsResult(card)
         created(cardResult).build()
     }
 
+    Response resultObjectValidator(ResultObject resultObject) {
+        if(!(resultObject && resultObject.data.attributes)) {
+            return badRequest("Invalid syntax: Object must contain data.attributes field").build()
+        }
+        if(!resultObject.data.attributes.type instanceof String ||
+                !validTypes.contains(resultObject.data.attributes.type)) {
     @PUT
     @Path('{id}')
     @Consumes(MediaType.APPLICATION_JSON)
@@ -205,27 +205,41 @@ class CardsResource extends Resource {
             return badRequest("Invalid type. " +
                     "Valid types are skill, attack, power, status, curse").build()
         }
-        if(!validColors.contains(card.color)) {
+        if(!resultObject.data.attributes.color instanceof String ||
+                !validColors.contains(resultObject.data.attributes.color)) {
             return badRequest("Invalid color. " +
                     "Valid colors are red, green, blue, colorless").build()
         }
-        if(!validRarities.contains(card.rarity)) {
+        if(!resultObject.data.attributes.rarity instanceof String ||
+                !validRarities.contains(resultObject.data.attributes.rarity)) {
             return badRequest("Invalid rarity. " +
                     "Valid rarities are basic, common, uncommon, rare").build()
         }
-        if(!card.name.matches(regEx)) {
-            return badRequest("Invalid name: \'" + card.name +
+        if(!(resultObject.data.attributes.name instanceof String)) {
+            return badRequest("Invalid name. " +
+                    "Name must match pattern: " +
+                    validPattern).build()
+        }
+        if(!resultObject.data.attributes.name.matches(validPattern)) {
+            return badRequest("Invalid name: \'" + resultObject.data.attributes.name +
                     "\'. Name must match pattern: " +
-                    regEx).build()
+                    validPattern).build()
         }
-        if(!card.description.matches(regEx)) {
-            return badRequest("Invalid description: \'" + card.description +
+        if(!(resultObject.data.attributes.description instanceof String)) {
+            return badRequest("Invalid description. " +
+                    "Description must match pattern: " +
+                    validPattern).build()
+        }
+        if(!resultObject.data.attributes.description.matches(validPattern)) {
+            return badRequest("Invalid description: \'" + resultObject.data.attributes.description +
                     "\'. Description must match pattern: " +
-                    regEx).build()
+                    validPattern).build()
         }
-        if(!(card.energy >= 0 && card.energy <= 999)) {
+        if(!(resultObject.data.attributes.energy instanceof Integer
+                && resultObject.data.attributes.energy >= energyMin
+                && resultObject.data.attributes.energy <= energyMax)) {
             return badRequest("Invalid energy number. " +
-                    "Energy must be between 0 and 999").build()
+                    "Energy must be between ${energyMin} and ${energyMax}").build()
         }
         null
     }
