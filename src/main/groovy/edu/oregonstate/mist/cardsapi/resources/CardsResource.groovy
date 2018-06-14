@@ -8,7 +8,9 @@ import edu.oregonstate.mist.api.Resource
 import edu.oregonstate.mist.api.jsonapi.ResourceObject
 import edu.oregonstate.mist.api.jsonapi.ResultObject
 
+import javax.ws.rs.Consumes
 import javax.ws.rs.DELETE
+import javax.ws.rs.POST
 import javax.annotation.security.PermitAll
 import javax.ws.rs.GET
 import javax.ws.rs.Path
@@ -36,6 +38,8 @@ class CardsResource extends Resource {
     List<String> validTypes = ["skill", "attack", "power", "status", "curse"]
     List<String> validColors = ["red", "green", "blue", "colorless"]
     List<String> validRarities = ["basic", "common", "uncommon", "rare"]
+    Integer energyMin = 0
+    Integer energyMax = 999
 
     // Regular expression for allowed name or description of card
     String validPattern = '[a-zA-Z0-9 ."+-]*'
@@ -144,5 +148,69 @@ class CardsResource extends Resource {
 
         ResultObject cardResult = cardsResult(cards)
         ok(cardResult).build()
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response postCard (@Valid ResultObject newResultObject) {
+
+        Response badResponse = resultObjectValidator(newResultObject)
+        if(badResponse) {
+            return badResponse
+        }
+        Integer id = cardDAO.getNextId()
+        cardDAO.postCard(id, (Card)newResultObject.data.attributes)
+
+        Card card = cardDAO.getCardById(id)
+        ResultObject cardResult = cardsResult(card)
+        created(cardResult).build()
+    }
+
+    Response resultObjectValidator(ResultObject resultObject) {
+        if(!(resultObject && resultObject.data.attributes)) {
+            return badRequest("Invalid syntax: Object must contain data.attributes field").build()
+        }
+        if(!resultObject.data.attributes.type instanceof String ||
+                !validTypes.contains(resultObject.data.attributes.type)) {
+            return badRequest("Invalid type. " +
+                    "Valid types are skill, attack, power, status, curse").build()
+        }
+        if(!resultObject.data.attributes.color instanceof String ||
+                !validColors.contains(resultObject.data.attributes.color)) {
+            return badRequest("Invalid color. " +
+                    "Valid colors are red, green, blue, colorless").build()
+        }
+        if(!resultObject.data.attributes.rarity instanceof String ||
+                !validRarities.contains(resultObject.data.attributes.rarity)) {
+            return badRequest("Invalid rarity. " +
+                    "Valid rarities are basic, common, uncommon, rare").build()
+        }
+        if(!(resultObject.data.attributes.name instanceof String)) {
+            return badRequest("Invalid name. " +
+                    "Name must match pattern: " +
+                    validPattern).build()
+        }
+        if(!resultObject.data.attributes.name.matches(validPattern)) {
+            return badRequest("Invalid name: \'" + resultObject.data.attributes.name +
+                    "\'. Name must match pattern: " +
+                    validPattern).build()
+        }
+        if(!(resultObject.data.attributes.description instanceof String)) {
+            return badRequest("Invalid description. " +
+                    "Description must match pattern: " +
+                    validPattern).build()
+        }
+        if(!resultObject.data.attributes.description.matches(validPattern)) {
+            return badRequest("Invalid description: \'" + resultObject.data.attributes.description +
+                    "\'. Description must match pattern: " +
+                    validPattern).build()
+        }
+        if(!(resultObject.data.attributes.energy instanceof Integer
+                && resultObject.data.attributes.energy >= energyMin
+                && resultObject.data.attributes.energy <= energyMax)) {
+            return badRequest("Invalid energy number. " +
+                    "Energy must be between ${energyMin} and ${energyMax}").build()
+        }
+        null
     }
 }

@@ -3,6 +3,7 @@ package edu.oregonstate.mist.cardsapi.db
 import edu.oregonstate.mist.cardsapi.core.Card
 import edu.oregonstate.mist.cardsapi.mapper.CardsMapper
 import org.skife.jdbi.v2.sqlobject.Bind
+import org.skife.jdbi.v2.sqlobject.BindBean
 import org.skife.jdbi.v2.sqlobject.SqlQuery
 import org.skife.jdbi.v2.sqlobject.SqlUpdate
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper
@@ -34,6 +35,24 @@ interface CardDAO extends Closeable {
         WHERE CARDS.ID = :id
     """)
     Card getCardById(@Bind("id") Integer id)
+
+    @SqlUpdate ("""
+        INSERT INTO CARDS (ID, TYPE_ID, NAME, COLOR_ID, RARITY_ID, ENERGY, DESCRIPTION)
+        VALUES (
+            (:id),
+            (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE = :c.type),
+            (:c.name),
+            (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR = :c.color),
+            (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY = :c.rarity),
+            (:c.energy),
+            (:c.description)
+        )
+        """)
+    void postCard(@Bind("id") Integer id,
+                  @BindBean("c") Card card)
+
+    @SqlQuery("SELECT CARD_INSTANCE_SEQ.NEXTVAL FROM DUAL")
+    Integer getNextId()
 
     @Override
     void close()
