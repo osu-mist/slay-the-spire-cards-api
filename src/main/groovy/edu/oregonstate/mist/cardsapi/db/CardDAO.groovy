@@ -2,14 +2,13 @@ package edu.oregonstate.mist.cardsapi.db
 
 import edu.oregonstate.mist.cardsapi.core.Card
 import edu.oregonstate.mist.cardsapi.mapper.CardsMapper
-import edu.oregonstate.mist.cardsapi.mapper.ListsMapper
+
 import org.skife.jdbi.v2.sqlobject.Bind
 import org.skife.jdbi.v2.sqlobject.BindBean
 import org.skife.jdbi.v2.sqlobject.SqlQuery
 import org.skife.jdbi.v2.sqlobject.SqlUpdate
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper
 
-// This will query the database and return a Card object
 @RegisterMapper(CardsMapper)
 interface CardDAO extends Closeable {
 
@@ -81,21 +80,18 @@ interface CardDAO extends Closeable {
         SELECT TYPE
         FROM CARD_TYPES
     """)
-    @RegisterMapper(ListsMapper)
     List<String> getValidTypes()
 
     @SqlQuery ("""
         SELECT COLOR
         FROM CARD_COLORS
     """)
-    @RegisterMapper(ListsMapper)
     List<String> getValidColors()
 
     @SqlQuery ("""
         SELECT RARITY
         FROM CARD_RARITIES
     """)
-    @RegisterMapper(ListsMapper)
     List<String> getValidRarities()
 
     @Override

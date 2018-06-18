@@ -8,28 +8,26 @@ import edu.oregonstate.mist.api.Resource
 import edu.oregonstate.mist.api.jsonapi.ResourceObject
 import edu.oregonstate.mist.api.jsonapi.ResultObject
 
-import javax.ws.rs.Consumes
-import javax.ws.rs.DELETE
-import javax.ws.rs.POST
-import javax.annotation.security.PermitAll
 import javax.ws.rs.GET
+import javax.ws.rs.POST
 import javax.ws.rs.PUT
+import javax.ws.rs.DELETE
+import javax.ws.rs.Consumes
+import javax.ws.rs.Produces
 import javax.ws.rs.Path
 import javax.ws.rs.PathParam
-import javax.ws.rs.Produces
-import javax.ws.rs.core.Response
-import javax.ws.rs.core.MediaType
 import javax.ws.rs.QueryParam
+import javax.ws.rs.core.MediaType
+import javax.ws.rs.core.Response
+import javax.annotation.security.PermitAll
 import javax.validation.Valid
 import com.google.common.base.Optional
-
 import org.skife.jdbi.v2.DBI
-
-// This will get a Card object from CardDAO and send responses for different endpoints
 
 @Path('/cards')
 @PermitAll
 @Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
 class CardsResource extends Resource {
 
     private final CardDAO cardDAO
@@ -55,6 +53,12 @@ class CardsResource extends Resource {
         this.validRarities = validRarities
     }
 
+    /**
+     * Builds a JSON API ResourceObject out of a Card
+     *
+     * @param card Card object
+     * @return ResourceObject
+     */
     ResourceObject cardsResource(Card card) {
         new ResourceObject(
                 id: card.id,
@@ -64,19 +68,36 @@ class CardsResource extends Resource {
         )
     }
 
+    /**
+     * Builds a single JSON API ResultObject out of a Card
+     *
+     * @param card Card object
+     * @return ResultObject
+     */
     ResultObject cardsResult(Card card) {
         new ResultObject(
                 data: cardsResource(card)
         )
     }
 
+    /**
+     * Builds a list of JSON API ResultObjects out of a list of Cards
+     *
+     * @param cards List of card objects
+     * @return List<ResultObject>
+     */
     ResultObject cardsResult(List<Card> cards) {
         new ResultObject(
                 data: cards.collect {singleCard -> cardsResource(singleCard)}
         )
     }
 
-    // Get card by id
+    /**
+     * Endpoint for getting a card by its ID using GET
+     *
+     * @param id Path ID of card to be retrieved
+     * @return Response
+     */
     @GET
     @Path ('{id}')
     Response getCardById(@PathParam('id') IntParam id) {
@@ -92,7 +113,21 @@ class CardsResource extends Resource {
 
     }
 
-    //Get cards by parameters
+    /**
+     * Endpoint for querying for a list of Cards using parameters with GET
+     *
+     * @param types (optional) List of types to filter by. Default: all
+     * @param name (optional) Partial string of name of card
+     * @param colors (optional) List of colors to filter by. Default: all
+     * @param rarities (optional) List of rarities to filter by. Default: all
+     * @param energyMin (optional) Minimum energy to filter by. Default: 0
+     * @param energyMax (optional) Maximum energy to filter by. Default: 999
+     * @param keywords (optional) List of keywords to filter Card's description by
+     * @param number (optional) Number of Cards to return. Default: 10
+     * @param isRandom (optional) Boolean that specifies if Cards should be returned
+     *        in a random order if true. Default: true
+     * @return Response
+     */
     @GET
     Response getCards(@QueryParam("types") List<String> types,
                       @QueryParam("name") Optional<String> name,
@@ -113,7 +148,6 @@ class CardsResource extends Resource {
                         "Valid types are: " + validTypes.join(", ")).build()
             }
         }
-
         if(!colors) {
             colors = validColors
         } else {
@@ -123,7 +157,6 @@ class CardsResource extends Resource {
                         "Valid colors are: " + validColors.join(", ")).build()
             }
         }
-
         if(!rarities) {
             rarities = validRarities
         } else {
@@ -133,7 +166,6 @@ class CardsResource extends Resource {
                         "Valid rarities are: " + validRarities.join(", ")).build()
             }
         }
-
         if(!(name.or("")).matches(validPattern)) {
             return badRequest("Invalid name: \'" + name.get() +
                     "\'. Name must match pattern: " +
@@ -155,8 +187,13 @@ class CardsResource extends Resource {
         ok(cardResult).build()
     }
 
+    /**
+     * Endpoint for adding new card using POST
+     *
+     * @param newResultObject Contents of POST body containing fields of new Card
+     * @return Response
+     */
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
     Response postCard (@Valid ResultObject newResultObject) {
 
         Response badResponse = resultObjectValidator(newResultObject)
@@ -165,15 +202,18 @@ class CardsResource extends Resource {
         }
         Integer id = cardDAO.getNextId()
         cardDAO.postCard(id, (Card)newResultObject.data.attributes)
-
-        Card card = cardDAO.getCardById(id)
-        ResultObject cardResult = cardsResult(card)
-        created(cardResult).build()
+        cardResponseById(id)
     }
 
+    /**
+     * Endpoint for updating a Card using PUT
+     *
+     * @param id Path ID of Card to be updated
+     * @param newResultObject Contents of PUT body containing updated fields of Card
+     * @return Response
+     */
     @PUT
     @Path('{id}')
-    @Consumes(MediaType.APPLICATION_JSON)
     Response putCard(@PathParam('id') IntParam id, @Valid ResultObject newResultObject) {
 
         if(!cardDAO.cardExists(id.get())) {
@@ -184,14 +224,27 @@ class CardsResource extends Resource {
             return badResponse
         }
         cardDAO.putCard(id.get(), (Card)newResultObject.data.attributes)
+        cardResponseById(id.get())
+    }
 
-        Card card  = cardDAO.getCardById(id.get())
+    /**
+     * Builds a response for a Card specified by its ID
+     *
+     * @param id ID of Card in database
+     * @return Response
+     */
+    Response cardResponseById(Integer id) {
+        Card card = cardDAO.getCardById(id)
         ResultObject cardResult = cardsResult(card)
         ok(cardResult).build()
     }
 
-    // Returns 400 response with error message if any errors found.
-    // Otherwise, returns null
+    /**
+     * Validates a ResultObject and returns a non-null response if errors are found
+     *
+     * @param resultObject JSON API ResultObject to be validated
+     * @return Response with a 400 if resultObject has errors. Otherwise, null
+     */
     Response resultObjectValidator(ResultObject resultObject) {
         if(!(resultObject && resultObject.data.attributes)) {
             return badRequest("Invalid syntax: Object must contain data.attributes field").build()
