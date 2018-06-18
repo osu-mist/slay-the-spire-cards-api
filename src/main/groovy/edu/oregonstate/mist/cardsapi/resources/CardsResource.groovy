@@ -202,7 +202,7 @@ class CardsResource extends Resource {
         }
         Integer id = cardDAO.getNextId()
         cardDAO.postCard(id, (Card)newResultObject.data.attributes)
-        cardResponseById(id)
+        created(cardResultById(id)).build()
     }
 
     /**
@@ -224,19 +224,18 @@ class CardsResource extends Resource {
             return badResponse
         }
         cardDAO.putCard(id.get(), (Card)newResultObject.data.attributes)
-        cardResponseById(id.get())
+        ok(cardResultById(id.get())).build()
     }
 
     /**
-     * Builds a response for a Card specified by its ID
+     * Builds a ResultObject for a Card specified by its ID
      *
      * @param id ID of Card in database
-     * @return Response
+     * @return ResultObject
      */
-    Response cardResponseById(Integer id) {
+    ResultObject cardResultById(Integer id) {
         Card card = cardDAO.getCardById(id)
-        ResultObject cardResult = cardsResult(card)
-        ok(cardResult).build()
+        cardsResult(card)
     }
 
     /**
