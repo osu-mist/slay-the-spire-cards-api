@@ -256,17 +256,17 @@ class CardsResource extends Resource {
         if(!resultObject.data.attributes.type instanceof String ||
                 !validTypes.contains(resultObject.data.attributes.type)) {
             return badRequest("Invalid type. " +
-                    "Valid types are skill, attack, power, status, curse").build()
+                    "Valid types are " + validTypes.join(", ")).build()
         }
         if(!resultObject.data.attributes.color instanceof String ||
                 !validColors.contains(resultObject.data.attributes.color)) {
             return badRequest("Invalid color. " +
-                    "Valid colors are red, green, blue, colorless").build()
+                    "Valid colors are " + validColors.join(", ")).build()
         }
         if(!resultObject.data.attributes.rarity instanceof String ||
                 !validRarities.contains(resultObject.data.attributes.rarity)) {
             return badRequest("Invalid rarity. " +
-                    "Valid rarities are basic, common, uncommon, rare").build()
+                    "Valid rarities are " + validRarities.join(", ")).build()
         }
         if(!(resultObject.data.attributes.name instanceof String)) {
             return badRequest("Invalid name. " +
