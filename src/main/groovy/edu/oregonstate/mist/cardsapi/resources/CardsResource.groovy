@@ -243,14 +243,28 @@ class CardsResource extends Resource {
         null
     }
 
+    /**
+     *
+     * @param parameter
+     * @param validList
+     * @param parameterName
+     * @return Response if error, otherwise null
+     */
     Response validateAttribute(def parameter, List<String> validList, String parameterName) {
         if(!(parameter instanceof String) ||
                 !validList.contains(parameter)) {
             return badRequest("Invalid ${parameterName}. " +
                     "Valid ${parameterName} one of: " + validList.join(", ")).build()
         }
+        null
     }
 
+    /**
+     *
+     * @param parameter
+     * @param parameterName
+     * @return Response if error, otherwise null
+     */
     Response validatePattern(def parameter, String parameterName) {
         if(!(parameter instanceof String)) {
             return badRequest("Invalid ${parameterName}. " +
@@ -262,6 +276,7 @@ class CardsResource extends Resource {
                     "\'. Valid ${parameterName} must match pattern: " +
                     validPattern).build()
         }
+        null
     }
 
     /**
