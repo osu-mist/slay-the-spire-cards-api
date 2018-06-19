@@ -56,17 +56,17 @@ interface CardDAO extends Closeable {
 
     @SqlUpdate ("""
         UPDATE CARDS
-            SET TYPE_ID = (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE = :c.type),
-            NAME = :c.name,
-            COLOR_ID = (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR = :c.color),
-            RARITY_ID = (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY = :c.rarity),
-            ENERGY = :c.energy,
-            DESCRIPTION = :c.description
+            SET TYPE_ID = (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE = :card.type),
+            NAME = :card.name,
+            COLOR_ID = (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR = :card.color),
+            RARITY_ID = (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY = :card.rarity),
+            ENERGY = :card.energy,
+            DESCRIPTION = :card.description
         WHERE CARDS.ID = :id
         
     """)
     void putCard(@Bind("id") Integer id,
-                 @BindBean("c") Card card)
+                 @BindBean("card") Card card)
 
     // Check if card exists
     @SqlQuery ("""

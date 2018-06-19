@@ -139,33 +139,22 @@ class CardsResource extends Resource {
                       @QueryParam("number") Optional<Integer> number,
                       @QueryParam("isRandom") Optional<Boolean> isRandom) {
 
-        if(!types) {
-            types = validTypes
-        } else {
-            List<String> invalidTypes = types - validTypes
-            if(invalidTypes) {
-                return badRequest("Invalid types: \'${invalidTypes.join("\', \'")}\'. " +
-                        "Valid types are: " + validTypes.join(", ")).build()
+        types = types ?: validTypes
+        colors = colors ?: validColors
+        rarities = rarities ?: validRarities
+        List<Response> badResponses = [validateList(types, validTypes, "types"),
+                       validateList(colors, validColors, "colors"),
+                       validateList(rarities, validRarities, "rarities")]
+        Response badResponse = null
+        badResponses.each {
+            if(it) {
+                badResponse = it
             }
         }
-        if(!colors) {
-            colors = validColors
-        } else {
-            List<String> invalidColors = colors - validColors
-            if(invalidColors) {
-                return badRequest("Invalid colors: \'${invalidColors.join("\', \'")}\'. " +
-                        "Valid colors are: " + validColors.join(", ")).build()
-            }
+        if(badResponse) {
+            return badResponse
         }
-        if(!rarities) {
-            rarities = validRarities
-        } else {
-            List<String> invalidRarities = rarities - validRarities
-            if(invalidRarities) {
-                return badRequest("Invalid rarities: \'${invalidRarities.join("\', \'")}\'. " +
-                        "Valid rarities are: " + validRarities.join(", ")).build()
-            }
-        }
+
         if(!(name.or("")).matches(validPattern)) {
             return badRequest("Invalid name: \'" + name.get() +
                     "\'. Name must match pattern: " +
@@ -216,7 +205,7 @@ class CardsResource extends Resource {
     @Path('{id}')
     Response putCard(@PathParam('id') IntParam id, @Valid ResultObject newResultObject) {
 
-        if(!cardDAO.cardExists(id.get())) {
+        if(!cardDAO.cardExists()) {
             return notFound().build()
         }
         Response badResponse = resultObjectValidator(newResultObject)
@@ -236,6 +225,22 @@ class CardsResource extends Resource {
     ResultObject cardResultById(Integer id) {
         Card card = cardDAO.getCardById(id)
         cardsResult(card)
+    }
+
+    /**
+     *
+     * @param queryList
+     * @param validList
+     * @param parameterName
+     * @return Response if error, otherwise null
+     */
+    Response validateList(List<String> queryList, List<String> validList, String parameterName) {
+        List<String> invalidList = queryList - validList
+        if(invalidList) {
+            return badRequest("Invalid ${parameterName}: \'${invalidList.join("\', \'")}\'. " +
+                    "Valid types are: " + validList.join(", ")).build()
+        }
+        null
     }
 
     /**
