@@ -94,6 +94,12 @@ interface CardDAO extends Closeable {
     """)
     List<String> getValidRarities()
 
+    @SqlUpdate ("""
+        DELETE FROM CARDS
+        WHERE CARDS.ID = :id
+    """)
+    void deleteCard(@Bind("id") Integer id)
+
     @Override
     void close()
 }

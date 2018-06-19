@@ -243,6 +243,18 @@ class CardsResource extends Resource {
         null
     }
 
+    @DELETE
+    @Path('{id}')
+    Response deleteCard(@PathParam('id') IntParam id) {
+
+        if(!cardDAO.cardExists(id.get())) {
+            return notFound().build()
+        }
+
+        cardDAO.deleteCard(id.get())
+        Response.status(Response.Status.NO_CONTENT).build()
+    }
+
     /**
      *
      * @param parameter
