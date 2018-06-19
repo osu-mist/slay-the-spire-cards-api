@@ -8,44 +8,57 @@ import edu.oregonstate.mist.api.Resource
 import edu.oregonstate.mist.api.jsonapi.ResourceObject
 import edu.oregonstate.mist.api.jsonapi.ResultObject
 
-import javax.ws.rs.Consumes
-import javax.ws.rs.DELETE
-import javax.ws.rs.POST
-import javax.annotation.security.PermitAll
 import javax.ws.rs.GET
+import javax.ws.rs.POST
 import javax.ws.rs.PUT
+import javax.ws.rs.DELETE
+import javax.ws.rs.Consumes
+import javax.ws.rs.Produces
 import javax.ws.rs.Path
 import javax.ws.rs.PathParam
-import javax.ws.rs.Produces
-import javax.ws.rs.core.Response
-import javax.ws.rs.core.MediaType
 import javax.ws.rs.QueryParam
+import javax.ws.rs.core.MediaType
+import javax.ws.rs.core.Response
+import javax.annotation.security.PermitAll
 import javax.validation.Valid
 import com.google.common.base.Optional
-
 import org.skife.jdbi.v2.DBI
-
-// This will get a Card object from CardDAO and send responses for different endpoints
 
 @Path('/cards')
 @PermitAll
 @Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
 class CardsResource extends Resource {
 
     private final CardDAO cardDAO
     private DBI dbi
-    CardFluent cardFluent = new CardFluent(dbi)
+    private CardFluent cardFluent
+    private List<String> validTypes
+    private List<String> validColors
+    private List<String> validRarities
+    Integer energyMin = 0
+    Integer energyMax = 999
 
-    List<String> validTypes = ["skill", "attack", "power", "status", "curse"]
-    List<String> validColors = ["red", "green", "blue", "colorless"]
-    List<String> validRarities = ["basic", "common", "uncommon", "rare"]
-    String regEx = '[a-zA-Z0-9 ."+-]*'
+    // Regular expression for allowed name or description of card
+    String validPattern = '[a-zA-Z0-9 ."+-]*'
 
-    CardsResource(CardDAO cardDAO, DBI dbi) {
+    CardsResource(CardDAO cardDAO, DBI dbi, CardFluent cardFluent,
+                  List<String> validTypes, List<String> validColors,
+                  List<String> validRarities) {
         this.cardDAO = cardDAO
         this.dbi = dbi
+        this.cardFluent = cardFluent
+        this.validTypes = validTypes
+        this.validColors = validColors
+        this.validRarities = validRarities
     }
 
+    /**
+     * Builds a JSON API ResourceObject out of a Card
+     *
+     * @param card Card object
+     * @return ResourceObject
+     */
     ResourceObject cardsResource(Card card) {
         new ResourceObject(
                 id: card.id,
@@ -55,22 +68,38 @@ class CardsResource extends Resource {
         )
     }
 
+    /**
+     * Builds a single JSON API ResultObject out of a Card
+     *
+     * @param card Card object
+     * @return ResultObject
+     */
     ResultObject cardsResult(Card card) {
         new ResultObject(
                 data: cardsResource(card)
         )
     }
 
+    /**
+     * Builds a list of JSON API ResultObjects out of a list of Cards
+     *
+     * @param cards List of card objects
+     * @return List<ResultObject>
+     */
     ResultObject cardsResult(List<Card> cards) {
         new ResultObject(
                 data: cards.collect {singleCard -> cardsResource(singleCard)}
         )
     }
 
-    // Get card by id
+    /**
+     * Endpoint for getting a card by its ID using GET
+     *
+     * @param id Path ID of card to be retrieved
+     * @return Response
+     */
     @GET
     @Path ('{id}')
-    @Produces(MediaType.APPLICATION_JSON)
     Response getCardById(@PathParam('id') IntParam id) {
 
         Card card = cardDAO.getCardById(id.get())
@@ -84,10 +113,22 @@ class CardsResource extends Resource {
 
     }
 
-    //Get cards by parameters
+    /**
+     * Endpoint for querying for a list of Cards using parameters with GET
+     *
+     * @param types (optional) List of types to filter by. Default: all
+     * @param name (optional) Partial string of name of card
+     * @param colors (optional) List of colors to filter by. Default: all
+     * @param rarities (optional) List of rarities to filter by. Default: all
+     * @param energyMin (optional) Minimum energy to filter by. Default: 0
+     * @param energyMax (optional) Maximum energy to filter by. Default: 999
+     * @param keywords (optional) List of keywords to filter Card's description by
+     * @param number (optional) Number of Cards to return. Default: 10
+     * @param isRandom (optional) Boolean that specifies if Cards should be returned
+     *        in a random order if true. Default: true
+     * @return Response
+     */
     @GET
-    @Path ('')
-    @Produces(MediaType.APPLICATION_JSON)
     Response getCards(@QueryParam("types") List<String> types,
                       @QueryParam("name") Optional<String> name,
                       @QueryParam("colors") List<String> colors,
@@ -98,51 +139,33 @@ class CardsResource extends Resource {
                       @QueryParam("number") Optional<Integer> number,
                       @QueryParam("isRandom") Optional<Boolean> isRandom) {
 
-        if(!types) {
-            types = validTypes
-        } else {
-            List<String> invalidTypes = types - validTypes
-            if(invalidTypes) {
-                return badRequest("Invalid types: \'${invalidTypes.join("\', \'")}\'. " +
-                        "Valid types are: " +
-                        "skill, attack, power, status, curse").build()
+        types = types ?: validTypes
+        colors = colors ?: validColors
+        rarities = rarities ?: validRarities
+        List<Response> badResponses = [validateList(types, validTypes, "types"),
+                       validateList(colors, validColors, "colors"),
+                       validateList(rarities, validRarities, "rarities")]
+        Response badResponse = null
+        badResponses.each {
+            if(it) {
+                badResponse = it
             }
         }
-
-        if(!colors) {
-            colors = validColors
-        } else {
-            List<String> invalidColors = colors - validColors
-            if(invalidColors) {
-                return badRequest("Invalid colors: \'${invalidColors.join("\', \'")}\'. " +
-                        "Valid colors are: " +
-                        "red, green, blue, colorless.").build()
-            }
+        if(badResponse) {
+            return badResponse
         }
 
-        if(!rarities) {
-            rarities = validRarities
-        } else {
-            List<String> invalidRarities = rarities - validRarities
-            if(invalidRarities) {
-                return badRequest("Invalid rarities: \'${invalidRarities.join("\', \'")}\'. " +
-                        "Valid rarities are: " +
-                        "basic, common, uncommon, rare").build()
-            }
-        }
-
-        if(!(name.or("")).matches(regEx)) {
+        if(!(name.or("")).matches(validPattern)) {
             return badRequest("Invalid name: \'" + name.get() +
                     "\'. Name must match pattern: " +
-                    regEx).build()
+                    validPattern).build()
         }
 
-        for(int i = 0; i < keywords.size(); i++) {
-            if(!keywords[i].matches(regEx)) {
-                return badRequest("Invalid keyword: \'" + keywords[i] +
-                        "\'. All keywords " +
-                        "must match pattern: " + regEx).build()
-            }
+        List<String> invalidKeywords = keywords.findAll {!it.matches(validPattern)}
+        if(invalidKeywords) {
+            return badRequest("Invalid keywords: \'${invalidKeywords.join("\', \'")}\'. " +
+                    "All keywords " +
+                    "must match pattern: " + validPattern).build()
         }
 
         List<Card> cards = cardFluent.getCards(types, name.orNull(), colors, rarities,
@@ -153,59 +176,78 @@ class CardsResource extends Resource {
         ok(cardResult).build()
     }
 
+    /**
+     * Endpoint for adding new card using POST
+     *
+     * @param newResultObject Contents of POST body containing fields of new Card
+     * @return Response
+     */
     @POST
-    @Path('')
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    Response postCard (@Valid Card newCard) {
+    Response postCard (@Valid ResultObject newResultObject) {
 
-        Response response = cardValidator(newCard)
-        if(response) {
-            return response
+        Response badResponse = resultObjectValidator(newResultObject)
+        if(badResponse) {
+            return badResponse
         }
-
         Integer id = cardDAO.getNextId()
-        cardDAO.postCard(
-                id,
-                newCard.type,
-                newCard.name,
-                newCard.color,
-                newCard.rarity,
-                newCard.energy,
-                newCard.description)
-
-        Card card = cardDAO.getCardById(id)
-        ResultObject cardResult = cardsResult(card)
-        created(cardResult).build()
+        cardDAO.postCard(id, (Card)newResultObject.data.attributes)
+        created(cardResultById(id)).build()
     }
 
+    /**
+     * Endpoint for updating a Card using PUT
+     *
+     * @param id Path ID of Card to be updated
+     * @param newResultObject Contents of PUT body containing updated fields of Card
+     * @return Response
+     */
     @PUT
     @Path('{id}')
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    Response putCard(@PathParam('id') IntParam id, @Valid Card updateCard) {
+    Response putCard(@PathParam('id') IntParam id, @Valid ResultObject newResultObject) {
 
-        if(cardDAO.cardExists(id.get()) != 1) {
+        if(!cardDAO.cardExists(id.get())) {
             return notFound().build()
         }
-        Response response = cardValidator(updateCard)
-        if(response) {
-            return response
+        Response badResponse = resultObjectValidator(newResultObject)
+        if(badResponse) {
+            return badResponse
         }
+        cardDAO.putCard(id.get(), (Card)newResultObject.data.attributes)
+        ok(cardResultById(id.get())).build()
+    }
 
-        cardDAO.putCard(id.get(), updateCard.type, updateCard.name,
-                updateCard.color, updateCard.rarity,
-                updateCard.energy, updateCard.description)
-        Card card  = cardDAO.getCardById(id.get())
-        ResultObject cardResult = cardsResult(card)
-        ok(cardResult).build()
+    /**
+     * Builds a ResultObject for a Card specified by its ID
+     *
+     * @param id ID of Card in database
+     * @return ResultObject
+     */
+    ResultObject cardResultById(Integer id) {
+        Card card = cardDAO.getCardById(id)
+        cardsResult(card)
+    }
+
+    /**
+     *
+     * @param queryList
+     * @param validList
+     * @param parameterName
+     * @return Response if error, otherwise null
+     */
+    Response validateList(List<String> queryList, List<String> validList, String parameterName) {
+        List<String> invalidList = queryList - validList
+        if(invalidList) {
+            return badRequest("Invalid ${parameterName}: \'${invalidList.join("\', \'")}\'. " +
+                    "Valid types are: " + validList.join(", ")).build()
+        }
+        null
     }
 
     @DELETE
     @Path('{id}')
     Response deleteCard(@PathParam('id') IntParam id) {
 
-        if(cardDAO.cardExists(id.get()) != 1) {
+        if(!cardDAO.cardExists(id.get())) {
             return notFound().build()
         }
 
@@ -213,34 +255,73 @@ class CardsResource extends Resource {
         Response.status(Response.Status.NO_CONTENT).build()
     }
 
-    // Returns 400 response with error message if any errors found.
-    // Otherwise, returns null
-    Response cardValidator(Card card) {
-        if(!validTypes.contains(card.type)) {
-            return badRequest("Invalid type. " +
-                    "Valid types are skill, attack, power, status, curse").build()
+    /**
+     *
+     * @param parameter
+     * @param validList
+     * @param parameterName
+     * @return Response if error, otherwise null
+     */
+    Response validateAttribute(def parameter, List<String> validList, String parameterName) {
+        if(!(parameter instanceof String) ||
+                !validList.contains(parameter)) {
+            return badRequest("Invalid ${parameterName}. " +
+                    "Valid ${parameterName} one of: " + validList.join(", ")).build()
         }
-        if(!validColors.contains(card.color)) {
-            return badRequest("Invalid color. " +
-                    "Valid colors are red, green, blue, colorless").build()
+        null
+    }
+
+    /**
+     *
+     * @param parameter
+     * @param parameterName
+     * @return Response if error, otherwise null
+     */
+    Response validatePattern(def parameter, String parameterName) {
+        if(!(parameter instanceof String)) {
+            return badRequest("Invalid ${parameterName}. " +
+                    "Valid ${parameterName} must match pattern: " +
+                    validPattern).build()
         }
-        if(!validRarities.contains(card.rarity)) {
-            return badRequest("Invalid rarity. " +
-                    "Valid rarities are basic, common, uncommon, rare").build()
+        if(!parameter.matches(validPattern)) {
+            return badRequest("Invalid ${parameterName}: \'" + parameter +
+                    "\'. Valid ${parameterName} must match pattern: " +
+                    validPattern).build()
         }
-        if(!card.name.matches(regEx)) {
-            return badRequest("Invalid name: \'" + card.name +
-                    "\'. Name must match pattern: " +
-                    regEx).build()
+        null
+    }
+
+    /**
+     * Validates a ResultObject and returns a non-null response if errors are found
+     *
+     * @param resultObject JSON API ResultObject to be validated
+     * @return Response with a 400 if resultObject has errors. Otherwise, null
+     */
+    Response resultObjectValidator(ResultObject resultObject) {
+        if(!(resultObject && resultObject.data.attributes)) {
+            return badRequest("Invalid syntax: Object must contain data.attributes field").build()
         }
-        if(!card.description.matches(regEx)) {
-            return badRequest("Invalid description: \'" + card.description +
-                    "\'. Description must match pattern: " +
-                    regEx).build()
+        List<Response> badResponses =
+                [validateAttribute(resultObject.data.attributes.type, validTypes, "type"),
+                 validateAttribute(resultObject.data.attributes.color, validColors, "color"),
+                 validateAttribute(resultObject.data.attributes.rarity, validRarities, "rarity"),
+                 validatePattern(resultObject.data.attributes.name, "name"),
+                 validatePattern(resultObject.data.attributes.description, "description")]
+        Response badResponse = null
+        badResponses.each {
+            if(it) {
+                badResponse = it
+            }
         }
-        if(!(card.energy >= 0 && card.energy <= 999)) {
+        if(badResponse) {
+            return badResponse
+        }
+
+        if(!(resultObject.data.attributes.energy instanceof Integer
+                && resultObject.data.attributes.energy >= energyMin
+                && resultObject.data.attributes.energy <= energyMax)) {
             return badRequest("Invalid energy number. " +
-                    "Energy must be between 0 and 999").build()
+                    "Energy must be between ${energyMin} and ${energyMax}").build()
         }
         null
     }

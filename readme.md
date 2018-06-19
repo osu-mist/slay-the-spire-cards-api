@@ -19,6 +19,22 @@ Returns the card with the specified id.
 ### /cards
 Adds a new card to the database.
 
+ Example of POST body:
+```json
+{
+    "data": {
+        "attributes": {
+            "type": "skill",
+            "name": "Defend",
+            "color": "red",
+            "rarity": "basic",
+            "energy": 1,
+            "description": "Gain 5 Block."
+        }
+    }
+}
+```
+
 ## PUT
 
 ### /cards/{id}

@@ -2,12 +2,13 @@ package edu.oregonstate.mist.cardsapi.db
 
 import edu.oregonstate.mist.cardsapi.core.Card
 import edu.oregonstate.mist.cardsapi.mapper.CardsMapper
+
 import org.skife.jdbi.v2.sqlobject.Bind
+import org.skife.jdbi.v2.sqlobject.BindBean
 import org.skife.jdbi.v2.sqlobject.SqlQuery
 import org.skife.jdbi.v2.sqlobject.SqlUpdate
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper
 
-// This will query the database and return a Card object
 @RegisterMapper(CardsMapper)
 interface CardDAO extends Closeable {
 
@@ -39,56 +40,59 @@ interface CardDAO extends Closeable {
         INSERT INTO CARDS (ID, TYPE_ID, NAME, COLOR_ID, RARITY_ID, ENERGY, DESCRIPTION)
         VALUES (
             (:id),
-            (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE = :type),
-            (:name),
-            (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR = :color),
-            (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY = :rarity),
-            (:energy),
-            (:description)
+            (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE = :c.type),
+            (:c.name),
+            (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR = :c.color),
+            (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY = :c.rarity),
+            (:c.energy),
+            (:c.description)
         )
         """)
     void postCard(@Bind("id") Integer id,
-                  @Bind("type") String type,
-                  @Bind("name") String name,
-                  @Bind("color") String color,
-                  @Bind("rarity") String rarity,
-                  @Bind("energy") Integer energy,
-                  @Bind("description") String description)
+                  @BindBean("c") Card card)
 
     @SqlQuery("SELECT CARD_INSTANCE_SEQ.NEXTVAL FROM DUAL")
     Integer getNextId()
 
     @SqlUpdate ("""
         UPDATE CARDS
-            SET TYPE_ID = (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE = :type),
-            NAME = :name,
-            COLOR_ID = (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR = :color),
-            RARITY_ID = (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY = :rarity),
-            ENERGY = :energy,
-            DESCRIPTION = :description
+            SET TYPE_ID = (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE = :card.type),
+            NAME = :card.name,
+            COLOR_ID = (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR = :card.color),
+            RARITY_ID = (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY = :card.rarity),
+            ENERGY = :card.energy,
+            DESCRIPTION = :card.description
         WHERE CARDS.ID = :id
         
     """)
     void putCard(@Bind("id") Integer id,
-                 @Bind("type") String type,
-                 @Bind("name") String name,
-                 @Bind("color") String color,
-                 @Bind("rarity") String rarity,
-                 @Bind("energy") Integer energy,
-                 @Bind("description") String description)
+                 @BindBean("card") Card card)
 
     // Check if card exists
     @SqlQuery ("""
-        SELECT CASE
-            WHEN EXISTS (SELECT *
-                         FROM CARDS
-                         WHERE CARDS.ID = :id)
-            THEN 1
-            ELSE 0
-            END
-        FROM DUAL
+        SELECT COUNT(*)
+        FROM CARDS
+        WHERE CARDS.ID = :id
     """)
-    Integer cardExists(@Bind("id") Integer id)
+    Boolean cardExists(@Bind("id") Integer id)
+
+    @SqlQuery ("""
+        SELECT TYPE
+        FROM CARD_TYPES
+    """)
+    List<String> getValidTypes()
+
+    @SqlQuery ("""
+        SELECT COLOR
+        FROM CARD_COLORS
+    """)
+    List<String> getValidColors()
+
+    @SqlQuery ("""
+        SELECT RARITY
+        FROM CARD_RARITIES
+    """)
+    List<String> getValidRarities()
 
     @SqlUpdate ("""
         DELETE FROM CARDS

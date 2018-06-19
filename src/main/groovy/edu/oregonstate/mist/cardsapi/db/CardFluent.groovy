@@ -17,19 +17,22 @@ class CardFluent {
     // Converts list of strings to comma-separated list in SQL
     static String listToSql (List<String> list) {
         String str = "("
-        for(int i = 0; i < list.size() - 1; i++) {
-            str += "\'" + list[i] + "\',"
+        list.each {
+            if(it == list.last()) {
+                str += "\'" + it + "\')"
+            } else {
+                str += "\'" + it + "\',"
+            }
         }
-        str += "\'" + list[list.size() - 1] + "\')"
         str
     }
 
     // Builds list of LIKE statements for each string in keywords
     static String keywordsToSql (List<String> keywords) {
         String str = ""
-        for(int i = 0; i < keywords.size(); i++) {
+        keywords.each {
             str += "AND LOWER(DESCRIPTION) LIKE LOWER('%'||"
-            str += "\'" + keywords[i] + "\'"
+            str += "\'" + it + "\'"
             str += "||'%')"
         }
         str
@@ -47,15 +50,31 @@ class CardFluent {
         Handle h = dbi.open()
         String query = """
         
-        SELECT *
-
+        SELECT
+            ID,
+            TYPE,
+            NAME,
+            COLOR,
+            RARITY,
+            ENERGY,
+            DESCRIPTION
+            
         FROM (
-            SELECT *
+            SELECT
+            CARDS.ID,
+            CARDS.NAME,
+            CARDS.ENERGY,
+            CARDS.DESCRIPTION,
+            
+            CARD_TYPES.TYPE,
+            CARD_COLORS.COLOR,
+            CARD_RARITIES.RARITY
+
             FROM CARDS
             
-            LEFT JOIN CARD_TYPES ON CARDS.TYPE_ID = CARD_TYPES.TYPE_ID
-            LEFT JOIN CARD_COLORS ON CARDS.COLOR_ID = CARD_COLORS.COLOR_ID
-            LEFT JOIN CARD_RARITIES ON CARDS.RARITY_ID = CARD_RARITIES.RARITY_ID
+            INNER JOIN CARD_TYPES ON CARDS.TYPE_ID = CARD_TYPES.TYPE_ID
+            INNER JOIN CARD_COLORS ON CARDS.COLOR_ID = CARD_COLORS.COLOR_ID
+            INNER JOIN CARD_RARITIES ON CARDS.RARITY_ID = CARD_RARITIES.RARITY_ID
             
             ORDER BY """
         if (isRandom) {
@@ -73,14 +92,14 @@ class CardFluent {
             AND ENERGY \\<= :energyMax
             AND TYPE IN """
         query += listToSql(types)
-        query += """AND COLOR IN """
+        query += "AND COLOR IN "
         query += listToSql(colors)
-        query += """AND RARITY IN """
+        query += "AND RARITY IN "
         query += listToSql(rarities)
         if(keywords) {
             query += keywordsToSql(keywords)
         }
-        query += """FETCH FIRST :cardNumber ROWS ONLY"""
+        query += "FETCH FIRST :cardNumber ROWS ONLY"
 
         Query<Map<String, Object>> q = h.createQuery(query)
                 .bind("types", types)
