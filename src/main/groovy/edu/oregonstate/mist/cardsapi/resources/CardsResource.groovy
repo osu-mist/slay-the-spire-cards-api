@@ -205,7 +205,7 @@ class CardsResource extends Resource {
     @Path('{id}')
     Response putCard(@PathParam('id') IntParam id, @Valid ResultObject newResultObject) {
 
-        if(!cardDAO.cardExists()) {
+        if(!cardDAO.cardExists(id.get())) {
             return notFound().build()
         }
         Response badResponse = resultObjectValidator(newResultObject)
@@ -243,6 +243,27 @@ class CardsResource extends Resource {
         null
     }
 
+    Response validateAttribute(def parameter, List<String> validList, String parameterName) {
+        if(!(parameter instanceof String) ||
+                !validList.contains(parameter)) {
+            return badRequest("Invalid ${parameterName}. " +
+                    "Valid ${parameterName} one of: " + validList.join(", ")).build()
+        }
+    }
+
+    Response validatePattern(def parameter, String parameterName) {
+        if(!(parameter instanceof String)) {
+            return badRequest("Invalid ${parameterName}. " +
+                    "Valid ${parameterName} must match pattern: " +
+                    validPattern).build()
+        }
+        if(!parameter.matches(validPattern)) {
+            return badRequest("Invalid ${parameterName}: \'" + parameter +
+                    "\'. Valid ${parameterName} must match pattern: " +
+                    validPattern).build()
+        }
+    }
+
     /**
      * Validates a ResultObject and returns a non-null response if errors are found
      *
@@ -253,41 +274,22 @@ class CardsResource extends Resource {
         if(!(resultObject && resultObject.data.attributes)) {
             return badRequest("Invalid syntax: Object must contain data.attributes field").build()
         }
-        if(!resultObject.data.attributes.type instanceof String ||
-                !validTypes.contains(resultObject.data.attributes.type)) {
-            return badRequest("Invalid type. " +
-                    "Valid types are " + validTypes.join(", ")).build()
+        List<Response> badResponses =
+                [validateAttribute(resultObject.data.attributes.type, validTypes, "type"),
+                 validateAttribute(resultObject.data.attributes.color, validColors, "color"),
+                 validateAttribute(resultObject.data.attributes.rarity, validRarities, "rarity"),
+                 validatePattern(resultObject.data.attributes.name, "name"),
+                 validatePattern(resultObject.data.attributes.description, "description")]
+        Response badResponse = null
+        badResponses.each {
+            if(it) {
+                badResponse = it
+            }
         }
-        if(!resultObject.data.attributes.color instanceof String ||
-                !validColors.contains(resultObject.data.attributes.color)) {
-            return badRequest("Invalid color. " +
-                    "Valid colors are " + validColors.join(", ")).build()
+        if(badResponse) {
+            return badResponse
         }
-        if(!resultObject.data.attributes.rarity instanceof String ||
-                !validRarities.contains(resultObject.data.attributes.rarity)) {
-            return badRequest("Invalid rarity. " +
-                    "Valid rarities are " + validRarities.join(", ")).build()
-        }
-        if(!(resultObject.data.attributes.name instanceof String)) {
-            return badRequest("Invalid name. " +
-                    "Name must match pattern: " +
-                    validPattern).build()
-        }
-        if(!resultObject.data.attributes.name.matches(validPattern)) {
-            return badRequest("Invalid name: \'" + resultObject.data.attributes.name +
-                    "\'. Name must match pattern: " +
-                    validPattern).build()
-        }
-        if(!(resultObject.data.attributes.description instanceof String)) {
-            return badRequest("Invalid description. " +
-                    "Description must match pattern: " +
-                    validPattern).build()
-        }
-        if(!resultObject.data.attributes.description.matches(validPattern)) {
-            return badRequest("Invalid description: \'" + resultObject.data.attributes.description +
-                    "\'. Description must match pattern: " +
-                    validPattern).build()
-        }
+
         if(!(resultObject.data.attributes.energy instanceof Integer
                 && resultObject.data.attributes.energy >= energyMin
                 && resultObject.data.attributes.energy <= energyMax)) {
