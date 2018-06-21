@@ -32,91 +32,65 @@ class CardsResourceTest {
         def fluent = mockFluent.proxyInstance()
         CardsResource resource = new CardsResource(dao, null, fluent,
                 dao.getValidTypes(), dao.getValidColors(), dao.getValidRarities())
-
-        // Test: no result
-        def noResult
         Optional.with {
-            noResult = resource.getCards(["attack"], absent(),
+            // Test: no result
+            def noResult = resource.getCards(["attack"], absent(),
                     ["colorless"], ["rare"], absent(), absent(),
                     null, absent(), absent())
-        }
-        validateResponse(noResult, 200, null, null)
-        assert noResult.entity.data == []
+            validateResponse(noResult, 200, null, null)
+            assert noResult.entity.data == []
 
-        // Test: Invalid type
-        def invalidType
-        invalidType = Optional.with {
-            resource.getCards(["invalidType"], absent(),
+            // Test: Invalid type
+            def invalidType = resource.getCards(["invalidType"], absent(),
                     null, null, absent(), absent(),
                     null, absent(), absent())
-        }
-        validateResponse(invalidType, 400, 1400, "Invalid types")
+            validateResponse(invalidType, 400, 1400, "Invalid types")
 
-        // Test: Invalid color
-        def invalidColor
-        invalidColor = Optional.with {
-            resource.getCards(null, absent(),
+            // Test: Invalid color
+            def invalidColor = resource.getCards(null, absent(),
                     ["invalidColor"], null, absent(), absent(),
                     null, absent(), absent())
-        }
-        validateResponse(invalidColor, 400, 1400, "Invalid colors")
+            validateResponse(invalidColor, 400, 1400, "Invalid colors")
 
-        // Test: Invalid rarity
-        def invalidRarity
-        invalidRarity = Optional.with {
-            resource.getCards(null, absent(),
+            // Test: Invalid rarity
+            def invalidRarity = resource.getCards(null, absent(),
                     null, ["invalidRarity"], absent(), absent(),
                     null, absent(), absent())
-        }
-        validateResponse(invalidRarity, 400, 1400, "Invalid rarities")
+            validateResponse(invalidRarity, 400, 1400, "Invalid rarities")
 
-        // Test: Invalid name
-        def invalidName
-        invalidName = Optional.with {
-            resource.getCards(null, of("invalidname()"),
+            // Test: Invalid name
+            def invalidName = resource.getCards(null, of("invalidname()"),
                     null, null, absent(), absent(),
                     null, absent(), absent())
-        }
-        validateResponse(invalidName, 400, 1400, "Invalid name")
+            validateResponse(invalidName, 400, 1400, "Invalid name")
 
-        // Test: Invalid keyword
-        def invalidKeyword
-        invalidKeyword = Optional.with {
-            resource.getCards(null, absent(),
+            // Test: Invalid keyword
+            def invalidKeyword = resource.getCards(null, absent(),
                     null, null, absent(), absent(),
                     ["invalidKeyword()"], absent(), absent())
-        }
-        validateResponse(invalidKeyword, 400, 1400, "Invalid keywords")
+            validateResponse(invalidKeyword, 400, 1400, "Invalid keywords")
 
-        // Test: Out of range energy
-        def outOfRangeEnergy
-        outOfRangeEnergy = Optional.with {
-            resource.getCards(null, absent(),
+            // Test: Out of range energy
+            def outOfRangeEnergy = resource.getCards(null, absent(),
                     null, null, of(-1), of(1000),
                     null, absent(), absent())
-        }
-        validateResponse(outOfRangeEnergy, 400, 1400,
-                "energyMin or energyMax out of range")
+            validateResponse(outOfRangeEnergy, 400, 1400,
+                    "energyMin or energyMax out of range")
 
-        // Test: energyMin XOR energyMax
-        def energyXor
-        energyXor = Optional.with {
-            resource.getCards(null, absent(),
+            // Test: energyMin XOR energyMax
+            def energyXor = resource.getCards(null, absent(),
                     null, null, of(5), absent(),
                     null, absent(), absent())
-        }
-        validateResponse(energyXor, 400, 1400,
-                "energyMin and energyMax must both be valid")
+            validateResponse(energyXor, 400, 1400,
+                    "energyMin and energyMax must both be valid")
 
-        // Test: energyMin > energyMax
-        def wrongEnergyOrder
-        wrongEnergyOrder = Optional.with {
-            resource.getCards(null, absent(),
+            // Test: energyMin > energyMax
+            def wrongEnergyOrder = resource.getCards(null, absent(),
                     null, null, of(20), of(10),
                     null, absent(), absent())
+            validateResponse(wrongEnergyOrder, 400, 1400,
+                    "energyMin must not be greater than energyMax")
         }
-        validateResponse(wrongEnergyOrder, 400, 1400,
-                "energyMin must not be greater than energyMax")
     }
 
     // Test: CardsResource.getCardById
