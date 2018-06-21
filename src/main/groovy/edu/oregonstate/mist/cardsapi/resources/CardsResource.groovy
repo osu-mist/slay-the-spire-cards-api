@@ -169,18 +169,23 @@ class CardsResource extends Resource {
         }
 
         // Validate energy
-        if(energyMin.present && energyMax.present &&
-                !(energyMin.get() >= 0 && energyMin.get() <= 999 &&
-                        energyMax.get() >= 0 && energyMax.get() <= 999)) {
-            return badRequest("energyMin or energyMax out of range. " +
-                    "Valid range is 0 to 999.").build()
-        }
-        if(energyMin.present ^ energyMax.present) {
+        boolean energyMinExists = energyMin.present
+        boolean energyMaxExists = energyMax.present
+        if(energyMinExists ^ energyMaxExists) {
             return badRequest("energyMin and energyMax must both be valid " +
                     "or must both be null.").build()
         }
-        if(energyMin.present && energyMax.present && !(energyMin.get() <= energyMax.get())) {
-            return badRequest("energyMin must not be greater than energyMax.").build()
+        if(energyMinExists && energyMaxExists) {
+            Integer energyMinValue = energyMin.get()
+            Integer energyMaxValue = energyMax.get()
+            if(!(energyMinValue <= energyMaxValue)) {
+                return badRequest("energyMin must not be greater than energyMax.").build()
+            }
+            if(!(energyMinValue >= 0 && energyMinValue <= 999
+                 && energyMaxValue >= 0 && energyMaxValue <= 999)) {
+                return badRequest("energyMin or energyMax out of range. " +
+                        "Valid range is 0 to 999.").build()
+            }
         }
 
         List<Card> cards = cardFluent.getCards(types, name.orNull(), colors, rarities,

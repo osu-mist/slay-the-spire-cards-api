@@ -34,77 +34,88 @@ class CardsResourceTest {
                 dao.getValidTypes(), dao.getValidColors(), dao.getValidRarities())
 
         // Test: no result
-        def noResult = resource.getCards(["attack"], Optional.absent(),
-                ["colorless"], ["rare"], Optional.absent(), Optional.absent(),
-                null, Optional.absent(), Optional.absent())
-        assert noResult.status == 200
+        def noResult
+        Optional.with {
+            noResult = resource.getCards(["attack"], absent(),
+                    ["colorless"], ["rare"], absent(), absent(),
+                    null, absent(), absent())
+        }
+        validateResponse(noResult, 200, null, null)
         assert noResult.entity.data == []
 
         // Test: Invalid type
-        def invalidType = resource.getCards(["invalidType"], Optional.absent(),
-                null, null, Optional.absent(), Optional.absent(),
-                null, Optional.absent(), Optional.absent())
-        assert invalidType.status == 400
-        assert invalidType.entity.code == 1400
-        assert invalidType.entity.developerMessage.contains("Invalid types")
+        def invalidType
+        invalidType = Optional.with {
+            resource.getCards(["invalidType"], absent(),
+                    null, null, absent(), absent(),
+                    null, absent(), absent())
+        }
+        validateResponse(invalidType, 400, 1400, "Invalid types")
 
         // Test: Invalid color
-        def invalidColor = resource.getCards(null, Optional.absent(),
-                ["invalidColor"], null, Optional.absent(), Optional.absent(),
-                null, Optional.absent(), Optional.absent())
-        assert invalidColor.status == 400
-        assert invalidColor.entity.code == 1400
-        assert invalidColor.entity.developerMessage.contains("Invalid colors")
+        def invalidColor
+        invalidColor = Optional.with {
+            resource.getCards(null, absent(),
+                    ["invalidColor"], null, absent(), absent(),
+                    null, absent(), absent())
+        }
+        validateResponse(invalidColor, 400, 1400, "Invalid colors")
 
         // Test: Invalid rarity
-        def invalidRarity = resource.getCards(null, Optional.absent(),
-                null, ["invalidRarity"], Optional.absent(), Optional.absent(),
-                null, Optional.absent(), Optional.absent())
-        assert invalidRarity.status == 400
-        assert invalidRarity.entity.code == 1400
-        assert invalidRarity.entity.developerMessage.contains("Invalid rarities")
+        def invalidRarity
+        invalidRarity = Optional.with {
+            resource.getCards(null, absent(),
+                    null, ["invalidRarity"], absent(), absent(),
+                    null, absent(), absent())
+        }
+        validateResponse(invalidRarity, 400, 1400, "Invalid rarities")
 
         // Test: Invalid name
-        def invalidName = resource.getCards(null, Optional.of("invalidname()"),
-                null, null, Optional.absent(), Optional.absent(),
-                null, Optional.absent(), Optional.absent())
-        assert invalidName.status == 400
-        assert invalidName.entity.code == 1400
-        assert invalidName.entity.developerMessage.contains("Invalid name")
+        def invalidName
+        invalidName = Optional.with {
+            resource.getCards(null, of("invalidname()"),
+                    null, null, absent(), absent(),
+                    null, absent(), absent())
+        }
+        validateResponse(invalidName, 400, 1400, "Invalid name")
 
         // Test: Invalid keyword
-        def invalidKeyword = resource.getCards(null, Optional.absent(),
-                null, null, Optional.absent(), Optional.absent(),
-                ["invalidKeyword()"], Optional.absent(), Optional.absent())
-        assert invalidKeyword.status == 400
-        assert invalidKeyword.entity.code == 1400
-        assert invalidKeyword.entity.developerMessage.contains("Invalid keywords")
+        def invalidKeyword
+        invalidKeyword = Optional.with {
+            resource.getCards(null, absent(),
+                    null, null, absent(), absent(),
+                    ["invalidKeyword()"], absent(), absent())
+        }
+        validateResponse(invalidKeyword, 400, 1400, "Invalid keywords")
 
         // Test: Out of range energy
-        def outOfRangeEnergy = resource.getCards(null, Optional.absent(),
-                null, null, Optional.of(-1), Optional.of(1000),
-                null, Optional.absent(), Optional.absent())
-        assert outOfRangeEnergy.status == 400
-        assert outOfRangeEnergy.entity.code == 1400
-        assert outOfRangeEnergy.entity.developerMessage.contains(
+        def outOfRangeEnergy
+        outOfRangeEnergy = Optional.with {
+            resource.getCards(null, absent(),
+                    null, null, of(-1), of(1000),
+                    null, absent(), absent())
+        }
+        validateResponse(outOfRangeEnergy, 400, 1400,
                 "energyMin or energyMax out of range")
 
         // Test: energyMin XOR energyMax
-        def energyXor = resource.getCards(null, Optional.absent(),
-                null, null, Optional.of(5), Optional.absent(),
-                null, Optional.absent(), Optional.absent())
-        assert energyXor.status == 400
-        assert energyXor.entity.code == 1400
-        assert energyXor.entity.developerMessage.contains(
+        def energyXor
+        energyXor = Optional.with {
+            resource.getCards(null, absent(),
+                    null, null, of(5), absent(),
+                    null, absent(), absent())
+        }
+        validateResponse(energyXor, 400, 1400,
                 "energyMin and energyMax must both be valid")
 
         // Test: energyMin > energyMax
-        def wrongEnergyOrder = resource.getCards(null, Optional.absent(),
-                null, null, Optional.of(20), Optional.of(10),
-                null, Optional.absent(), Optional.absent())
-        assert wrongEnergyOrder.status == 400
-        assert wrongEnergyOrder.entity.code == 1400
-        assert wrongEnergyOrder.entity.developerMessage.contains(
+        def wrongEnergyOrder
+        wrongEnergyOrder = Optional.with {
+            resource.getCards(null, absent(),
+                    null, null, of(20), of(10),
+                    null, absent(), absent())
+        }
+        validateResponse(wrongEnergyOrder, 400, 1400,
                 "energyMin must not be greater than energyMax")
     }
 
@@ -123,7 +134,7 @@ class CardsResourceTest {
 
         IntParam id = new IntParam("1")
         def validId = resource.getCardById(id)
-        assert validId.status == 200
+        validateResponse(validId, 200, null, null)
     }
 
     // Test: id not found
@@ -138,7 +149,7 @@ class CardsResourceTest {
 
         IntParam id = new IntParam("1")
         def idNotFound = resource.getCardById(id)
-        assert idNotFound.status == 404
+        validateResponse(idNotFound, 404, 1404, null)
     }
 
     // Test: CardsResource.postCard
@@ -178,48 +189,42 @@ class CardsResourceTest {
 
         // Test: post a card
         def validPost = resource.postCard(resultObject)
-        assert validPost.status == 201
+        validateResponse(validPost, 201, null, null)
 
         // Test: invalid type
         resultObject.data.attributes.type = "badType"
         def invalidType = resource.postCard(resultObject)
-        assert invalidType.status == 400
-        assert invalidType.entity.developerMessage.contains("Invalid type")
+        validateResponse(invalidType, 400, 1400, "Invalid type")
         resultObject.data.attributes.type = "skill"
 
         // Test: invalid color
         resultObject.data.attributes.color = "badColor"
         def invalidColor = resource.postCard(resultObject)
-        assert invalidColor.status == 400
-        assert invalidColor.entity.developerMessage.contains("Invalid color")
+        validateResponse(invalidColor, 400, 1400, "Invalid color")
         resultObject.data.attributes.color = "red"
 
         // Test: invalid rarity
         resultObject.data.attributes.rarity = "badRarity"
         def invalidRarity = resource.postCard(resultObject)
-        assert invalidRarity.status == 400
-        assert invalidRarity.entity.developerMessage.contains("Invalid rarity")
+        validateResponse(invalidRarity, 400, 1400, "Invalid rarity")
         resultObject.data.attributes.rarity = "basic"
 
         // Test: invalid name
         resultObject.data.attributes.name = "badName()"
         def invalidName = resource.postCard(resultObject)
-        assert invalidName.status == 400
-        assert invalidName.entity.developerMessage.contains("Invalid name")
+        validateResponse(invalidName, 400, 1400, "Invalid name")
         resultObject.data.attributes.name = "Defend"
 
         // Test: invalid description
         resultObject.data.attributes.description = "badDescription()"
         def invalidDescription = resource.postCard(resultObject)
-        assert invalidDescription.status == 400
-        assert invalidDescription.entity.developerMessage.contains("Invalid description")
+        validateResponse(invalidDescription, 400, 1400, "Invalid description")
         resultObject.data.attributes.description = "Gain 5 block."
 
         // Test: invalid energy
         resultObject.data.attributes.energy = 1000
         def invalidEnergy = resource.postCard(resultObject)
-        assert invalidEnergy.status == 400
-        assert invalidEnergy.entity.developerMessage.contains("Invalid energy")
+        validateResponse(invalidEnergy, 400, 1400, "Invalid energy")
         resultObject.data.attributes.energy = 1
     }
 
@@ -263,48 +268,42 @@ class CardsResourceTest {
 
         // Test: put a card
         def validPut = resource.putCard(id, resultObject)
-        assert validPut.status == 200
+        validateResponse(validPut, 200, null, null)
 
         // Test: invalid type
         resultObject.data.attributes.type = "badType"
         def invalidType = resource.putCard(id, resultObject)
-        assert invalidType.status == 400
-        assert invalidType.entity.developerMessage.contains("Invalid type")
+        validateResponse(invalidType, 400, 1400, "Invalid type")
         resultObject.data.attributes.type = "skill"
 
         // Test: invalid color
         resultObject.data.attributes.color = "badColor"
         def invalidColor = resource.putCard(id, resultObject)
-        assert invalidColor.status == 400
-        assert invalidColor.entity.developerMessage.contains("Invalid color")
+        validateResponse(invalidColor, 400, 1400, "Invalid color")
         resultObject.data.attributes.color = "red"
 
         // Test: invalid rarity
         resultObject.data.attributes.rarity = "badRarity"
         def invalidRarity = resource.putCard(id, resultObject)
-        assert invalidRarity.status == 400
-        assert invalidRarity.entity.developerMessage.contains("Invalid rarity")
+        validateResponse(invalidRarity, 400, 1400, "Invalid rarity")
         resultObject.data.attributes.rarity = "basic"
 
         // Test: invalid name
         resultObject.data.attributes.name = "badName()"
         def invalidName = resource.putCard(id, resultObject)
-        assert invalidName.status == 400
-        assert invalidName.entity.developerMessage.contains("Invalid name")
+        validateResponse(invalidName, 400, 1400, "Invalid name")
         resultObject.data.attributes.name = "Defend"
 
         // Test: invalid description
         resultObject.data.attributes.description = "badDescription()"
         def invalidDescription = resource.putCard(id, resultObject)
-        assert invalidDescription.status == 400
-        assert invalidDescription.entity.developerMessage.contains("Invalid description")
+        validateResponse(invalidDescription, 400, 1400, "Invalid description")
         resultObject.data.attributes.description = "Gain 5 block."
 
         // Test: invalid energy
         resultObject.data.attributes.energy = 1000
         def invalidEnergy = resource.putCard(id, resultObject)
-        assert invalidEnergy.status == 400
-        assert invalidEnergy.entity.developerMessage.contains("Invalid energy")
+        validateResponse(invalidEnergy, 400, 1400, "Invalid energy")
         resultObject.data.attributes.energy = 1
     }
 
@@ -321,7 +320,7 @@ class CardsResourceTest {
 
         // Test: put a card
         def notFoundPut = resource.putCard(id, null)
-        assert notFoundPut.status == 404
+        validateResponse(notFoundPut, 404, 1404, null)
     }
 
     // Test: CardsResource.deleteCard
@@ -339,7 +338,7 @@ class CardsResourceTest {
         IntParam id = new IntParam("1")
 
         def validDelete = resource.deleteCard(id)
-        assert validDelete.status == 204
+        validateResponse(validDelete, 204, null, null)
     }
 
     // Test: id not found in delete
@@ -354,6 +353,19 @@ class CardsResourceTest {
         IntParam id = new IntParam("1")
 
         def validDelete = resource.deleteCard(id)
-        assert validDelete.status == 404
+        validateResponse(validDelete, 404, 1404, null)
+    }
+
+    static void validateResponse(def response, Integer status, Integer code,
+                          String message) {
+        if(status) {
+            assert status == response.status
+        }
+        if(code) {
+            assert code == response.entity.code
+        }
+        if(message) {
+            assert response.entity.developerMessage.contains(message)
+        }
     }
 }
