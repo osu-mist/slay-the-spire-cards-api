@@ -176,7 +176,7 @@ class CardsResource extends Resource {
                     "Valid range is 0 to 999.").build()
         }
         if(energyMin.present ^ energyMax.present) {
-            return badRequest("energyMin and energyMax must both be valid" +
+            return badRequest("energyMin and energyMax must both be valid " +
                     "or must both be null.").build()
         }
         if(energyMin.present && energyMax.present && !(energyMin.get() <= energyMax.get())) {
