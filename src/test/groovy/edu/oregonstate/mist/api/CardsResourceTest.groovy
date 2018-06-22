@@ -33,12 +33,26 @@ class CardsResourceTest {
         CardsResource resource = new CardsResource(dao, null, fluent,
                 dao.getValidTypes(), dao.getValidColors(), dao.getValidRarities())
         Optional.with {
-            // Test: no result
-            def noResult = resource.getCards(["attack"], absent(),
+
+            // Test: empty arguments
+            def emptyArgs = resource.getCards(null, absent(), null,
+                    null, absent(), absent(), null, absent(), absent())
+            validateResponse(emptyArgs, 200, null, null)
+            assert emptyArgs.entity.data == []
+
+            // Test: all arguments
+            def allArgs = resource.getCards(["skill", "attack"], of("Defend"),
+                    ["red", "green"], ["basic", "common"],
+                    of(0), of(5), ["block"], of(10), of(true))
+            validateResponse(allArgs, 200, null, null)
+            assert allArgs.entity.data == []
+
+            // Test: Partial arguments
+            def someArgs = resource.getCards(["attack"], absent(),
                     ["colorless"], ["rare"], absent(), absent(),
-                    null, absent(), absent())
-            validateResponse(noResult, 200, null, null)
-            assert noResult.entity.data == []
+                    null, of(1), of(false))
+            validateResponse(someArgs, 200, null, null)
+            assert someArgs.entity.data == []
 
             // Test: Invalid type
             def invalidType = resource.getCards(["invalidType"], absent(),
@@ -268,6 +282,7 @@ class CardsResourceTest {
     }
 
     // Test: CardsResource.deleteCard
+
     // Test: valid id
     @Test
     void testValidDelete() {
