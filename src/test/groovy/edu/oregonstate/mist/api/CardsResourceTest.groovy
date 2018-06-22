@@ -166,34 +166,19 @@ class CardsResourceTest {
         validateResponse(validPost, 201, null, null)
 
         // Test: invalid type
-        resultObject.data.attributes.type = "badType"
-        def invalidType = resource.postCard(resultObject)
-        validateResponse(invalidType, 400, 1400, "Invalid type")
-        resultObject.data.attributes.type = "skill"
+        validateAttribute("type", false, resource, resultObject, "skill")
 
         // Test: invalid color
-        resultObject.data.attributes.color = "badColor"
-        def invalidColor = resource.postCard(resultObject)
-        validateResponse(invalidColor, 400, 1400, "Invalid color")
-        resultObject.data.attributes.color = "red"
+        validateAttribute("color", false, resource, resultObject, "red")
 
         // Test: invalid rarity
-        resultObject.data.attributes.rarity = "badRarity"
-        def invalidRarity = resource.postCard(resultObject)
-        validateResponse(invalidRarity, 400, 1400, "Invalid rarity")
-        resultObject.data.attributes.rarity = "basic"
+        validateAttribute("rarity", false, resource, resultObject, "basic")
 
         // Test: invalid name
-        resultObject.data.attributes.name = "badName()"
-        def invalidName = resource.postCard(resultObject)
-        validateResponse(invalidName, 400, 1400, "Invalid name")
-        resultObject.data.attributes.name = "Defend"
+        validateAttribute("name", false, resource, resultObject, "Defend")
 
         // Test: invalid description
-        resultObject.data.attributes.description = "badDescription()"
-        def invalidDescription = resource.postCard(resultObject)
-        validateResponse(invalidDescription, 400, 1400, "Invalid description")
-        resultObject.data.attributes.description = "Gain 5 block."
+        validateAttribute("description", false, resource, resultObject, "Gain 5 Block.")
 
         // Test: invalid energy
         resultObject.data.attributes.energy = 1000
@@ -245,34 +230,19 @@ class CardsResourceTest {
         validateResponse(validPut, 200, null, null)
 
         // Test: invalid type
-        resultObject.data.attributes.type = "badType"
-        def invalidType = resource.putCard(id, resultObject)
-        validateResponse(invalidType, 400, 1400, "Invalid type")
-        resultObject.data.attributes.type = "skill"
+        validateAttribute("type", true, resource, resultObject, "skill")
 
         // Test: invalid color
-        resultObject.data.attributes.color = "badColor"
-        def invalidColor = resource.putCard(id, resultObject)
-        validateResponse(invalidColor, 400, 1400, "Invalid color")
-        resultObject.data.attributes.color = "red"
+        validateAttribute("color", true, resource, resultObject, "red")
 
         // Test: invalid rarity
-        resultObject.data.attributes.rarity = "badRarity"
-        def invalidRarity = resource.putCard(id, resultObject)
-        validateResponse(invalidRarity, 400, 1400, "Invalid rarity")
-        resultObject.data.attributes.rarity = "basic"
+        validateAttribute("rarity", true, resource, resultObject, "basic")
 
         // Test: invalid name
-        resultObject.data.attributes.name = "badName()"
-        def invalidName = resource.putCard(id, resultObject)
-        validateResponse(invalidName, 400, 1400, "Invalid name")
-        resultObject.data.attributes.name = "Defend"
+        validateAttribute("name", true, resource, resultObject, "Defend")
 
         // Test: invalid description
-        resultObject.data.attributes.description = "badDescription()"
-        def invalidDescription = resource.putCard(id, resultObject)
-        validateResponse(invalidDescription, 400, 1400, "Invalid description")
-        resultObject.data.attributes.description = "Gain 5 block."
+        validateAttribute("description", true, resource, resultObject, "Gain 5 Block.")
 
         // Test: invalid energy
         resultObject.data.attributes.energy = 1000
@@ -341,5 +311,19 @@ class CardsResourceTest {
         if(message) {
             assert response.entity.developerMessage.contains(message)
         }
+    }
+
+    void validateAttribute(String attribute, boolean isPut, def resource,
+                              def resultObject, String defaultValue) {
+        IntParam id = new IntParam("1")
+        resultObject.data.attributes."$attribute" = "bad${attribute}()"
+        def response
+        if(isPut) {
+            response = resource.putCard(id, resultObject)
+        } else {
+            response = resource.postCard(resultObject)
+        }
+        validateResponse(response, 400, 1400, "Invalid ${attribute}")
+        resultObject.data.attributes."$attribute" = defaultValue
     }
 }
