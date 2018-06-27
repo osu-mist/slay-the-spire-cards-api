@@ -152,7 +152,6 @@ if __name__ == '__main__':
     url = config["hostname"] + config["version"] + config["api"]
     user = config["username"]
     passw = config["password"]
-    leftoverId = 0
 
     sys.argv = args
     unittest.main()
