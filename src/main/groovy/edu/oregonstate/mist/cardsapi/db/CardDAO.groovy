@@ -40,16 +40,16 @@ interface CardDAO extends Closeable {
         INSERT INTO CARDS (ID, TYPE_ID, NAME, COLOR_ID, RARITY_ID, ENERGY, DESCRIPTION)
         VALUES (
             (:id),
-            (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE = :c.type),
-            (:c.name),
-            (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR = :c.color),
-            (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY = :c.rarity),
-            (:c.energy),
-            (:c.description)
+            (SELECT TYPE_ID FROM CARD_TYPES WHERE TYPE = :card.type),
+            (:card.name),
+            (SELECT COLOR_ID FROM CARD_COLORS WHERE COLOR = :card.color),
+            (SELECT RARITY_ID FROM CARD_RARITIES WHERE RARITY = :card.rarity),
+            (:card.energy),
+            (:card.description)
         )
         """)
     void postCard(@Bind("id") Integer id,
-                  @BindBean("c") Card card)
+                  @BindBean("card") Card card)
 
     @SqlQuery("SELECT CARD_INSTANCE_SEQ.NEXTVAL FROM DUAL")
     Integer getNextId()
