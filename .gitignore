@@ -27,3 +27,12 @@ build.properties
 *.cer
 *.keystore
 *.truststore
+
+# VS Code Workspace Settings
+.vscode
+
+# Pycache Files
+__pycache__
+
+# Integration tests configuration
+**/configuration.json

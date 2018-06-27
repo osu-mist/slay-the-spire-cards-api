@@ -1,0 +1,37 @@
+{
+    "hostname": "https://localhost:8080/api/",
+    "version": "v0",
+    "api": "/cards/",
+
+    "username": "username",
+    "password": "password",
+
+    "validCardId": 1,
+    "invalidCardId": 0,
+
+    "validGetParams": {
+        "types": "skill",
+        "name": "Defend",
+        "colors": "red",
+        "rarities": "basic",
+        "energyMin": 0,
+        "energyMax": 5,
+        "keywords": "block",
+        "number": 5,
+        "isRandom": false
+    },
+
+    "validPostBody": {
+        "data": {
+            "type": "card",
+            "attributes": {
+                "type": "skill",
+                "name": "Defend",
+                "color": "red",
+                "rarity": "common",
+                "energy": 1,
+                "description": "Gain 5 block."
+            }
+        }
+    }
+}
