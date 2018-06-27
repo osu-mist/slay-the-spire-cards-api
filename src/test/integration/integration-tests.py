@@ -15,7 +15,7 @@ class TestStringMethods(unittest.TestCase):
 
         validId = validPost.json()["data"]["id"]
 
-        # Test getById with valid ID
+        # Test getCardById with valid ID
         validGet = auxillaries.getCardById(validId, url, user, passw)
         self.assertEqual(validGet.status_code, 200)
         self.assertIsNotNone(validGet.json()["data"])
@@ -32,10 +32,6 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(validDelete.status_code, 204)
 
     def testGetCardById(self):
-        # Valid card ID (redundant)
-        # validId = auxillaries.getCardById(config["validCardId"], url, user, passw)
-        # self.assertEqual(validId.status_code, 200)
-
         # Invalid card ID
         invalidId = auxillaries.getCardById(config["invalidCardId"], url, user, passw)
         self.assertEqual(invalidId.status_code, 404)
@@ -68,14 +64,16 @@ class TestStringMethods(unittest.TestCase):
         config["validGetParams"]["energyMin"] = -1
         minOutOfRange = auxillaries.getCards(config["validGetParams"], url, user, passw)
         self.assertEqual(minOutOfRange.status_code, 400)
-        self.assertIn("Invalid energy number", minOutOfRange.json()["developerMessage"])
+        self.assertIn("energyMin or energyMax out of range",
+                      minOutOfRange.json()["developerMessage"])
         config["validGetParams"]["energyMin"] = 0
 
         # energyMax out of range
         config["validGetParams"]["energyMax"] = 1000
         maxOutOfRange = auxillaries.getCards(config["validGetParams"], url, user, passw)
         self.assertEqual(maxOutOfRange.status_code, 400)
-        self.assertIn("Invalid energy number", maxOutOfRange.json()["developerMessage"])
+        self.assertIn("energyMin or energyMax out of range",
+                      maxOutOfRange.json()["developerMessage"])
         config["validGetParams"]["energyMax"] = 0
 
 
@@ -127,8 +125,7 @@ class TestStringMethods(unittest.TestCase):
         # Invalid energy
         testInvalidAttribute("energy", self, 1, True)
 
-    # def testDeleteCard(self):
-
+# Test invalid attribute in PUT or POST body
 def testInvalidAttribute(attribute, self, defaultValue, isPut):
     config["validPostBody"]["data"]["attributes"][attribute] = "bad" + attribute + "()"
     if isPut:
@@ -141,6 +138,7 @@ def testInvalidAttribute(attribute, self, defaultValue, isPut):
     self.assertIn("Invalid " + attribute, invalidAttribute.json()["developerMessage"])
     config["validPostBody"]["data"]["attributes"][attribute] = defaultValue
 
+# Test invalid parameter in getCards
 def testInvalidGetAttribute(attribute, self, defaultValue):
     config["validGetParams"][attribute] = "bad" + attribute + "()"
     invalidGetAttribute = auxillaries.getCards(config["validGetParams"], url, user, passw)
