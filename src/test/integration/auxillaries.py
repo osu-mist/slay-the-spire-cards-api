@@ -1,3 +1,4 @@
+import local_vars
 import sys
 import json
 import argparse
@@ -5,37 +6,43 @@ import unittest
 import requests
 from requests.auth import HTTPBasicAuth
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', help='path to input file', dest='inputfile')
     namespace, args = parser.parse_known_args()
-    print(namespace, args)
     return parser.parse_known_args()
 
-def getCardById(id, url, user, passw):
-    return requests.get(url=url+str(id),
-                        auth=HTTPBasicAuth(user, passw),
+
+def get_card_by_id(id):
+    return requests.get(url=local_vars.url+str(id),
+                        auth=HTTPBasicAuth(local_vars.user, local_vars.passw),
                         verify=False)
 
-def getCards(params, url, user, passw):
-    return requests.get(url=url,
-                        auth=HTTPBasicAuth(user, passw),
+
+def get_cards(params):
+    return requests.get(url=local_vars.url,
+                        auth=HTTPBasicAuth(local_vars.user, local_vars.passw),
                         params=params,
                         verify=False)
 
-def postCard(body, url, user, passw):
-    return requests.post(url=url,
-                        auth=HTTPBasicAuth(user, passw),
+
+def post_card(body):
+    return requests.post(url=local_vars.url,
+                         auth=HTTPBasicAuth(local_vars.user, local_vars.passw),
+                         json=body,
+                         verify=False)
+
+
+def put_card(id, body):
+    return requests.put(url=local_vars.url+str(id),
+                        auth=HTTPBasicAuth(local_vars.user, local_vars.passw),
                         json=body,
                         verify=False)
 
-def putCard(id, body, url, user, passw):
-    return requests.put(url=url+str(id),
-                        auth=HTTPBasicAuth(user, passw),
-                        json=body,
-                        verify=False)
 
-def deleteCard(id, url, user, passw):
-    return requests.delete(url=url+str(id),
-                           auth=HTTPBasicAuth(user, passw),
+def delete_card(id):
+    return requests.delete(url=local_vars.url+str(id),
+                           auth=HTTPBasicAuth(local_vars.user,
+                                              local_vars.passw),
                            verify=False)

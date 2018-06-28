@@ -1,68 +1,66 @@
 import auxillaries
+import local_vars
 import json
 import unittest
 import sys
 
+
 class TestStringMethods(unittest.TestCase):
 
     # Test POST, GET, PUT, DELETE
-    def testCombined(self):
-        # Test postCard with valid body
-        validPost = auxillaries.postCard(config["validPostBody"], url, user, passw)
-        self.assertEqual(validPost.status_code, 201)
-        self.assertIsNotNone(validPost.json()["data"])
-        self.assertEqual(validPost.json()["data"]["type"], "card")
+    def test_combined(self):
+        # Test post card with valid body
+        valid_post = auxillaries.post_card(config["validPostBody"])
+        test_valid_response(self, valid_post, 201)
 
-        validId = validPost.json()["data"]["id"]
+        valid_id = valid_post.json()["data"]["id"]
 
-        # Test getCardById with valid ID
-        validGet = auxillaries.getCardById(validId, url, user, passw)
-        self.assertEqual(validGet.status_code, 200)
-        self.assertIsNotNone(validGet.json()["data"])
-        self.assertEqual(validGet.json()["data"]["type"], "card")
+        # Test get card by id with valid ID
+        valid_get = auxillaries.get_card_by_id(valid_id)
+        test_valid_response(self, valid_get, 200)
 
-        # Test putCard with valid ID and body
-        validPut = auxillaries.putCard(validId, config["validPostBody"], url, user, passw)
-        self.assertEqual(validPut.status_code, 200)
-        self.assertIsNotNone(validPut.json()["data"])
-        self.assertEqual(validPut.json()["data"]["type"], "card")
+        # Test put card with valid ID and body
+        valid_put = auxillaries.put_card(valid_id, config["validPostBody"])
+        test_valid_response(self, valid_put, 200)
 
-        # Test deleteCard with valid ID
-        validDelete = auxillaries.deleteCard(validId, url, user, passw)
-        self.assertEqual(validDelete.status_code, 204)
+        # Test delete card with valid ID
+        valid_delete = auxillaries.delete_card(valid_id)
+        self.assertEqual(valid_delete.status_code, 204)
 
-    def testGetCardById(self):
+    def test_get_card_by_id(self):
         # Invalid card ID
-        invalidId = auxillaries.getCardById(config["invalidCardId"], url, user, passw)
-        self.assertEqual(invalidId.status_code, 404)
+        invalid_id = auxillaries.get_card_by_id(config["invalidCardId"])
+        self.assertEqual(invalid_id.status_code, 404)
 
-    def testGetCards(self):
+    def test_get_cards(self):
         # Valid parameters
-        validParams = auxillaries.getCards(config["validGetParams"], url, user, passw)
-        self.assertEqual(validParams.status_code, 200)
-        self.assertIsNotNone(validParams.json()["data"])
-        self.assertEqual(validParams.json()["data"][0]["type"], "card")
+        valid_params = auxillaries.get_cards(config["validGetParams"],
+                                             )
+        self.assertEqual(valid_params.status_code, 200)
+        self.assertIsNotNone(valid_params.json()["data"])
+        self.assertEqual(valid_params.json()["data"][0]["type"], "card")
 
-        ### Invalid parameters
+        # Invalid parameters
 
         # Invalid type
-        testInvalidGetAttribute("types", self, "skill")
+        test_invalid_get_attribute(self, "types", "skill")
 
         # Invalid color
-        testInvalidGetAttribute("colors", self, "red")
+        test_invalid_get_attribute(self, "colors", "red")
 
         # Invalid rarity
-        testInvalidGetAttribute("rarities", self, "basic")        
+        test_invalid_get_attribute(self, "rarities", "basic")
 
         # Invalid name
-        testInvalidGetAttribute("name", self, "Defend")
+        test_invalid_get_attribute(self, "name", "Defend")
 
         # Invalid keywords
-        testInvalidGetAttribute("keywords", self, "block")
+        test_invalid_get_attribute(self, "keywords", "block")
 
         # energyMin out of range
         config["validGetParams"]["energyMin"] = -1
-        minOutOfRange = auxillaries.getCards(config["validGetParams"], url, user, passw)
+        minOutOfRange = auxillaries.get_cards(config["validGetParams"],
+                                              )
         self.assertEqual(minOutOfRange.status_code, 400)
         self.assertIn("energyMin or energyMax out of range",
                       minOutOfRange.json()["developerMessage"])
@@ -70,85 +68,101 @@ class TestStringMethods(unittest.TestCase):
 
         # energyMax out of range
         config["validGetParams"]["energyMax"] = 1000
-        maxOutOfRange = auxillaries.getCards(config["validGetParams"], url, user, passw)
+        maxOutOfRange = auxillaries.get_cards(config["validGetParams"],
+                                              )
         self.assertEqual(maxOutOfRange.status_code, 400)
         self.assertIn("energyMin or energyMax out of range",
                       maxOutOfRange.json()["developerMessage"])
         config["validGetParams"]["energyMax"] = 0
 
-
-    def testPostCard(self):
-        ### Invalid body
+    def test_post_card(self):
+        # Invalid body
 
         # Invalid type
-        testInvalidAttribute("type", self, "skill", False)
+        test_invalid_attribute(self, "type", "skill", False)
 
         # Invalid color
-        testInvalidAttribute("color", self, "red", False)
+        test_invalid_attribute(self, "color", "red", False)
 
         # Invalid rarity
-        testInvalidAttribute("rarity", self, "basic", False)
+        test_invalid_attribute(self, "rarity", "basic", False)
 
         # Invalid name
-        testInvalidAttribute("name", self, "Defend", False)
+        test_invalid_attribute(self, "name", "Defend", False)
 
         # Invalid description
-        testInvalidAttribute("description", self, "Gain 5 block.", False)
+        test_invalid_attribute(self, "description", "Gain 5 block.", False)
 
         # Invalid energy
-        testInvalidAttribute("energy", self, 1, False)
+        test_invalid_attribute(self, "energy", 1, False)
 
-    def testPutCard(self):
+    def test_put_card(self):
         # Invalid ID
-        invalidId = auxillaries.putCard(config["invalidCardId"],
-                                        config["validPostBody"],
-                                        url, user, passw)
-        self.assertEqual(invalidId.status_code, 404)
+        invalid_id = auxillaries.put_card(config["invalidCardId"],
+                                          config["validPostBody"])
+        self.assertEqual(invalid_id.status_code, 404)
 
-        ### Invalid body
+        # Invalid body
 
         # Invalid type
-        testInvalidAttribute("type", self, "skill", True)
+        test_invalid_attribute(self, "type", "skill", True)
 
         # Invalid color
-        testInvalidAttribute("color", self, "red", True)
+        test_invalid_attribute(self, "color", "red", True)
 
         # Invalid rarity
-        testInvalidAttribute("rarity", self, "basic", True)
+        test_invalid_attribute(self, "rarity", "basic", True)
 
         # Invalid name
-        testInvalidAttribute("name", self, "Defend", True)
+        test_invalid_attribute(self, "name", "Defend", True)
 
         # Invalid description
-        testInvalidAttribute("description", self, "Gain 5 block.", True)
+        test_invalid_attribute(self, "description", "Gain 5 block.", True)
 
         # Invalid energy
-        testInvalidAttribute("energy", self, 1, True)
+        test_invalid_attribute(self, "energy", 1, True)
+
+    # def test_delete_card:
+        # Invalid id
+
+
+# Test valid response in combined test
+def test_valid_response(self, response, code):
+    self.assertEqual(response.status_code, code)
+    self.assertIsNotNone(response.json()["data"])
+    self.assertEqual(response.json()["data"]["type"], "card")
+
 
 # Test invalid attribute in PUT or POST body
-def testInvalidAttribute(attribute, self, defaultValue, isPut):
-    config["validPostBody"]["data"]["attributes"][attribute] = "bad" + attribute + "()"
+def test_invalid_attribute(self, attribute, defaultValue, isPut):
+    config["validPostBody"]["data"]["attributes"][attribute] = (
+        "bad" + attribute + "()"
+    )
     if isPut:
-        invalidAttribute = auxillaries.putCard(config["validCardId"],
-                                               config["validPostBody"],
-                                               url, user, passw)
+        invalidAttribute = auxillaries.put_card(config["validCardId"],
+                                                config["validPostBody"])
     else:
-        invalidAttribute = auxillaries.postCard(config["validPostBody"], url, user, passw)
+        invalidAttribute = auxillaries.post_card(config["validPostBody"])
     self.assertEqual(invalidAttribute.status_code, 400)
-    self.assertIn("Invalid " + attribute, invalidAttribute.json()["developerMessage"])
+    self.assertIn("Invalid " + attribute,
+                  invalidAttribute.json()["developerMessage"])
     config["validPostBody"]["data"]["attributes"][attribute] = defaultValue
 
-# Test invalid parameter in getCards
-def testInvalidGetAttribute(attribute, self, defaultValue):
+
+# Test invalid parameter in get_cards
+def test_invalid_get_attribute(self, attribute, defaultValue):
     config["validGetParams"][attribute] = "bad" + attribute + "()"
-    invalidGetAttribute = auxillaries.getCards(config["validGetParams"], url, user, passw)
-    self.assertEqual(invalidGetAttribute.status_code, 400)
-    self.assertIn("Invalid " + attribute, invalidGetAttribute.json()["developerMessage"])
+    invalid_get_attribute = auxillaries.get_cards(config["validGetParams"],
+                                                  )
+    self.assertEqual(invalid_get_attribute.status_code, 400)
+    self.assertIn("Invalid " + attribute,
+                  invalid_get_attribute.json()["developerMessage"])
     config["validGetParams"][attribute] = defaultValue
 
 if __name__ == '__main__':
     namespace, args = auxillaries.parse_args()
     config = json.load(open(namespace.inputfile))
+    local_vars.init(config)
     url = config["hostname"] + config["version"] + config["api"]
     user = config["username"]
     passw = config["password"]
