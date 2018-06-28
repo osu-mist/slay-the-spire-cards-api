@@ -163,9 +163,6 @@ if __name__ == '__main__':
     namespace, args = auxillaries.parse_args()
     config = json.load(open(namespace.inputfile))
     local_vars.init(config)
-    url = config["hostname"] + config["version"] + config["api"]
-    user = config["username"]
-    passw = config["password"]
 
     sys.argv = args
     unittest.main()
