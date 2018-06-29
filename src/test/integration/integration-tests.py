@@ -34,8 +34,7 @@ class TestStringMethods(unittest.TestCase):
 
     def test_get_cards(self):
         # Valid parameters
-        valid_params = auxillaries.get_cards(config["validGetParams"],
-                                             )
+        valid_params = auxillaries.get_cards(config["validGetParams"])
         self.assertEqual(valid_params.status_code, 200)
         self.assertIsNotNone(valid_params.json()["data"])
         self.assertEqual(valid_params.json()["data"][0]["type"], "card")
@@ -59,8 +58,7 @@ class TestStringMethods(unittest.TestCase):
 
         # energyMin out of range
         config["validGetParams"]["energyMin"] = -1
-        minOutOfRange = auxillaries.get_cards(config["validGetParams"],
-                                              )
+        minOutOfRange = auxillaries.get_cards(config["validGetParams"])
         self.assertEqual(minOutOfRange.status_code, 400)
         self.assertIn("energyMin or energyMax out of range",
                       minOutOfRange.json()["developerMessage"])
@@ -68,8 +66,7 @@ class TestStringMethods(unittest.TestCase):
 
         # energyMax out of range
         config["validGetParams"]["energyMax"] = 1000
-        maxOutOfRange = auxillaries.get_cards(config["validGetParams"],
-                                              )
+        maxOutOfRange = auxillaries.get_cards(config["validGetParams"])
         self.assertEqual(maxOutOfRange.status_code, 400)
         self.assertIn("energyMin or energyMax out of range",
                       maxOutOfRange.json()["developerMessage"])
@@ -122,8 +119,10 @@ class TestStringMethods(unittest.TestCase):
         # Invalid energy
         test_invalid_attribute(self, "energy", 1, True)
 
-    # def test_delete_card:
+    def test_delete_card(self):
         # Invalid id
+        invalid_id = auxillaries.delete_card(config["invalidCardId"])
+        self.assertEqual(invalid_id.status_code, 404)
 
 
 # Test valid response in combined test
@@ -136,7 +135,7 @@ def test_valid_response(self, response, code):
 # Test invalid attribute in PUT or POST body
 def test_invalid_attribute(self, attribute, defaultValue, isPut):
     config["validPostBody"]["data"]["attributes"][attribute] = (
-        "bad" + attribute + "()"
+        "bad{}()".format(attribute)
     )
     if isPut:
         invalidAttribute = auxillaries.put_card(config["validCardId"],
@@ -144,22 +143,22 @@ def test_invalid_attribute(self, attribute, defaultValue, isPut):
     else:
         invalidAttribute = auxillaries.post_card(config["validPostBody"])
     self.assertEqual(invalidAttribute.status_code, 400)
-    self.assertIn("Invalid " + attribute,
+    self.assertIn("Invalid {}".format(attribute),
                   invalidAttribute.json()["developerMessage"])
     config["validPostBody"]["data"]["attributes"][attribute] = defaultValue
 
 
 # Test invalid parameter in get_cards
 def test_invalid_get_attribute(self, attribute, defaultValue):
-    config["validGetParams"][attribute] = "bad" + attribute + "()"
-    invalid_get_attribute = auxillaries.get_cards(config["validGetParams"],
-                                                  )
+    config["validGetParams"][attribute] = "bad{}()".format(attribute)
+    invalid_get_attribute = auxillaries.get_cards(config["validGetParams"])
     self.assertEqual(invalid_get_attribute.status_code, 400)
-    self.assertIn("Invalid " + attribute,
+    self.assertIn("Invalid {}".format(attribute),
                   invalid_get_attribute.json()["developerMessage"])
     config["validGetParams"][attribute] = defaultValue
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     namespace, args = auxillaries.parse_args()
     config = json.load(open(namespace.inputfile))
     local_vars.init(config)

@@ -1,8 +1,5 @@
 import local_vars
-import sys
-import json
 import argparse
-import unittest
 import requests
 from requests.auth import HTTPBasicAuth
 
